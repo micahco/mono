@@ -37,6 +37,7 @@
             godef
             golint
             go-migrate
+            gnumake
           ];
         };
       });
