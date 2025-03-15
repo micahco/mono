@@ -144,7 +144,7 @@ func (r *UserRepository) GetForAuthenticationToken(ctx context.Context, tokenHas
 
 	sql := `
 		SELECT user_.id_, user_.version_, user_.created_at_, 
-		user_.email_, user_.password_hash_, verification_token_.expiry_
+		user_.email_, user_.password_hash_, authentication_token_.expiry_
 		FROM user_
 		INNER JOIN authentication_token_
 		ON user_.id_ = authentication_token_.user_id_

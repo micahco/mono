@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"context"
-	"time"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/micahco/mono/shared/data"
+	"github.com/micahco/mono/shared/data/internal/crypto"
 	"github.com/micahco/mono/shared/data/internal/uuid"
 )
 
@@ -13,23 +15,41 @@ type AuthenticationTokenRepository struct {
 	Pool *pgxpool.Pool
 }
 
-func (r *AuthenticationTokenRepository) New(ctx context.Context, tokenHash []byte, ttl time.Duration, userID uuid.UUID) (*data.AuthenticationToken, error) {
-	t := &data.AuthenticationToken{
-		Hash:   tokenHash,
-		Expiry: time.Now().Add(ttl),
-		UserID: uuid.Nil,
-	}
-
+func (r *AuthenticationTokenRepository) New(ctx context.Context, token crypto.Token, userID uuid.UUID) error {
 	sql := `
 		INSERT INTO authentication_token_ (hash_, expiry_, user_id_)
 		VALUES($1, $2, $3);`
-	args := []any{t.Hash, t.Expiry, t.UserID}
+	args := []any{token.Hash, token.Expiry, userID}
 	_, err := r.Pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return t, nil
+	return nil
+}
+
+func (r *AuthenticationTokenRepository) Get(ctx context.Context, tokenHash []byte) (*data.AuthenticationToken, error) {
+	var at data.AuthenticationToken
+
+	sql := `
+		SELECT hash_, expiry_, user_id_
+		FROM authentication_token_ WHERE hash_ = $1;`
+	args := []any{tokenHash}
+	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
+		&at.Hash,
+		&at.Expiry,
+		&at.UserID,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil, data.ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &at, nil
 }
 
 func (r *AuthenticationTokenRepository) Purge(ctx context.Context, userID uuid.UUID) error {
@@ -39,6 +59,9 @@ func (r *AuthenticationTokenRepository) Purge(ctx context.Context, userID uuid.U
 		`
 	args := []any{userID}
 	_, err := r.Pool.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }

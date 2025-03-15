@@ -4,16 +4,22 @@ import (
 	"context"
 	"time"
 
-	"github.com/micahco/mono/shared/data/internal/uuid"
+	"github.com/micahco/mono/shared/data/internal/crypto"
+)
+
+const (
+	VerificationTokenTTL = time.Hour * 36
+	ScopeRegistration    = "registration"
+	ScopeAccountDeletion = "account-deletion"
+	ScopeEmailChange     = "email-change"
+	ScopePasswordReset   = "password-reset"
 )
 
 type VerificationTokenRepository interface {
-	New(ctx context.Context, tokenHash []byte, ttl time.Duration, scope, email string) (*VerificationToken, error)
-	NewWithUserID(ctx context.Context, tokenHash []byte, ttl time.Duration, scope, email string, userID uuid.UUID) (*VerificationToken, error)
-	ExistsWithEmail(ctx context.Context, scope, email string) (bool, error)
-	ExistsWithEmailAndUserID(ctx context.Context, scope, email string, userID uuid.UUID) (bool, error)
-	PurgeWithEmail(ctx context.Context, email string) error
-	PurgeWithUserID(ctx context.Context, userID uuid.UUID) error
+	New(ctx context.Context, token crypto.Token, scope, email string) error
+	Get(ctx context.Context, tokenHash []byte) (*VerificationToken, error)
+	Exists(ctx context.Context, scope, email string) (bool, error)
+	Purge(ctx context.Context, email string) error
 	Verify(ctx context.Context, tokenHash []byte, scope, email string) error
 }
 
@@ -22,5 +28,4 @@ type VerificationToken struct {
 	Expiry time.Time `json:"expiry"`
 	Scope  string    `json:"-"`
 	Email  string    `json:"-"`
-	UserID uuid.UUID `json:"-"`
 }
