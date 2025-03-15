@@ -31,3 +31,8 @@ migrations/up: confirm
 migrations/drop: confirm
 	@echo "Dropping the entire database schema..."
 	docker-compose run --rm migrate -path ./migrations -database ${DATABASE_URL} drop
+
+## test: project-wide test suite
+.PHONY: test
+test:
+	go test ./shared/data/...
