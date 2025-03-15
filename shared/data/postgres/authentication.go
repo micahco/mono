@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/micahco/mono/shared/crypto"
 	"github.com/micahco/mono/shared/data"
-	"github.com/micahco/mono/shared/data/internal/crypto"
 	"github.com/micahco/mono/shared/data/internal/uuid"
 )
 

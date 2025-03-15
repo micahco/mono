@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/micahco/mono/migrations"
 	"github.com/micahco/mono/shared/data/postgres"
 	"github.com/peterldowns/pgtestdb"
 	"github.com/peterldowns/pgtestdb/migrators/golangmigrator"
@@ -22,7 +21,7 @@ func newPostgresDB(t *testing.T) *postgres.PostgresDB {
 		Port:       "5433", // non-default testing port
 		Options:    "sslmode=disable",
 	}
-	m := golangmigrator.New(".", golangmigrator.WithFS(migrations.Files))
+	m := golangmigrator.New("../../migrations")
 	c := pgtestdb.Custom(t, dbconf, m)
 	assert.NotEqual(t, dbconf, *c)
 

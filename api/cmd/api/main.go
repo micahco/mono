@@ -18,7 +18,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmittmann/tint"
-	"github.com/micahco/mono/shared/data"
+	"github.com/micahco/mono/shared/data/postgres"
 	"github.com/micahco/mono/shared/mailer"
 )
 
@@ -97,12 +97,12 @@ func main() {
 		log.Fatal("ded")
 	}
 
-	// PostgreSQL
-	pool, err := openPool(cfg.db.dsn)
+	// DB
+	pg, err := postgres.NewPostgresDB(cfg.db.dsn)
 	if err != nil {
 		fatal(err)
 	}
-	defer pool.Close()
+	defer pg.Close()
 
 	// Mailer
 	sender := &mail.Address{
@@ -127,14 +127,14 @@ func main() {
 		return runtime.NumGoroutine()
 	}))
 	expvar.Publish("database", expvar.Func(func() interface{} {
-		return dbStats(pool.Stat())
+		return dbStats(pg.Pool.Stat())
 	}))
 
 	app := &application{
 		config: cfg,
 		logger: logger,
 		mailer: m,
-		models: data.New(pool),
+		db:     *pg.DB,
 	}
 
 	err = app.serve(errLog)

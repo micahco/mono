@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 )
@@ -16,16 +18,22 @@ const (
 	InvalidAuthenticationTokenMessage = "invalid or expired authentication token"
 	AuthenticationRequiredMessage     = "you must be authenticated to access this resource"
 	RateLimitExceededMessage          = "rate limit exceeded"
+	defaultTimeout                    = 2 * time.Second
 )
 
 type envelope map[string]any
 
-type withError func(w http.ResponseWriter, r *http.Request) error
+type handlerWithErrorAndContext func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
 
-// Wraps handleWithError as http.HandlerFunc, with error handling
-func (app *application) handle(h withError) http.HandlerFunc {
+// Wraps handlerWithErrorAndContext for http.HandlerFunc
+func (app *application) handle(h handlerWithErrorAndContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := h(w, r); err != nil {
+		// Create a new context with the request's context and a default timeout
+		ctx, cancel := context.WithTimeout(r.Context(), defaultTimeout)
+		defer cancel()
+
+		if err := h(ctx, w, r); err != nil {
+			// Check errors from handler. Default is an internal server error
 			var validationError validation.Errors
 			switch {
 			case errors.As(err, &validationError):

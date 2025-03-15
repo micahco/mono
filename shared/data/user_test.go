@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/micahco/mono/shared/crypto"
 	"github.com/micahco/mono/shared/data"
-	"github.com/micahco/mono/shared/data/internal/crypto"
 	"github.com/micahco/mono/shared/data/internal/uuid"
 	"github.com/stretchr/testify/assert"
 )

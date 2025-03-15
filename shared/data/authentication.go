@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/micahco/mono/shared/data/internal/crypto"
+	"github.com/micahco/mono/shared/crypto"
 	"github.com/micahco/mono/shared/data/internal/uuid"
 )
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -59,15 +60,15 @@ func (app *application) routes() http.Handler {
 	return r
 }
 
-func (app *application) notFound(w http.ResponseWriter, r *http.Request) error {
+func (app *application) notFound(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	return app.writeError(w, http.StatusNotFound, nil)
 }
 
-func (app *application) methodNotAllowed(w http.ResponseWriter, r *http.Request) error {
+func (app *application) methodNotAllowed(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	return app.writeError(w, http.StatusMethodNotAllowed, nil)
 }
 
-func (app *application) healthcheck(w http.ResponseWriter, r *http.Request) error {
+func (app *application) healthcheck(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	env := "production"
 	if app.config.dev {
 		env = "development"

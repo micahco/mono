@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
+	"github.com/micahco/mono/shared/crypto"
 	"github.com/micahco/mono/shared/data"
 )
 
@@ -15,7 +17,7 @@ const (
 
 // Create a verification token with registration scope and
 // mail it to the provided email address.
-func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter, r *http.Request) error {
+func (app *application) tokensVerificaitonRegistrationPost(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	var input struct {
 		Email string `json:"email"`
 	}
@@ -37,7 +39,7 @@ func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter
 	msg := envelope{"message": verificationMsg}
 
 	// Check if user with email already exists
-	exists, err := app.models.User.ExistsWithEmail(input.Email)
+	exists, err := app.db.Users.ExistsWithEmail(ctx, input.Email)
 	if err != nil {
 		return err
 	}
@@ -48,7 +50,7 @@ func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter
 	}
 
 	// Check if a verification token has already been created recently
-	exists, err = app.models.VerificationToken.Exists(data.ScopeRegistration, input.Email, nil)
+	exists, err = app.db.VerificationTokens.Exists(ctx, data.ScopeRegistration, input.Email)
 	if err != nil {
 		return err
 	}
@@ -58,7 +60,12 @@ func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter
 		return app.writeJSON(w, http.StatusOK, msg, nil)
 	}
 
-	t, err := app.models.VerificationToken.New(data.ScopeRegistration, input.Email, nil)
+	token, err := crypto.NewToken(data.VerificationTokenTTL)
+	if err != nil {
+		return err
+	}
+
+	err = app.db.VerificationTokens.New(ctx, token, data.ScopeRegistration, input.Email)
 	if err != nil {
 		return err
 	}
@@ -66,7 +73,7 @@ func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter
 	// Mail the plaintext token to the user's email address.
 	app.background(func() error {
 		data := map[string]any{
-			"token": t.Plaintext,
+			"token": token.Plaintext,
 		}
 
 		return app.sendMail(input.Email, "registration.tmpl", data)
@@ -75,7 +82,7 @@ func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter
 	return app.writeJSON(w, http.StatusOK, msg, nil)
 }
 
-func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter, r *http.Request) error {
+func (app *application) tokensVerificaitonEmailChangePost(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	var input struct {
 		Email string `json:"email"`
 	}
@@ -97,7 +104,7 @@ func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter,
 	msg := envelope{"message": verificationMsg}
 
 	// Check if user with email already exists
-	exists, err := app.models.User.ExistsWithEmail(input.Email)
+	exists, err := app.db.Users.ExistsWithEmail(ctx, input.Email)
 	if err != nil {
 		return err
 	}
@@ -107,11 +114,8 @@ func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter,
 		return app.writeJSON(w, http.StatusOK, msg, nil)
 	}
 
-	// Get authenticated user's ID from context
-	user := app.contextGetUser(r)
-
 	// Check if a verification token has already been created recently
-	exists, err = app.models.VerificationToken.Exists(data.ScopeEmailChange, input.Email, &user.ID)
+	exists, err = app.db.VerificationTokens.Exists(ctx, data.ScopeEmailChange, input.Email)
 	if err != nil {
 		return err
 	}
@@ -121,8 +125,13 @@ func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter,
 		return app.writeJSON(w, http.StatusOK, msg, nil)
 	}
 
+	token, err := crypto.NewToken(data.VerificationTokenTTL)
+	if err != nil {
+		return err
+	}
+
 	// Create verification token for user with new email address
-	t, err := app.models.VerificationToken.New(data.ScopeEmailChange, input.Email, &user.ID)
+	err = app.db.VerificationTokens.New(ctx, token, data.ScopeEmailChange, input.Email)
 	if err != nil {
 		return err
 	}
@@ -130,7 +139,7 @@ func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter,
 	// Mail the plaintext token to the new email address
 	app.background(func() error {
 		data := map[string]any{
-			"token": t.Plaintext,
+			"token": token.Plaintext,
 		}
 
 		return app.sendMail(input.Email, "email-change.tmpl", data)
@@ -139,7 +148,7 @@ func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter,
 	return app.writeJSON(w, http.StatusOK, msg, nil)
 }
 
-func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWriter, r *http.Request) error {
+func (app *application) tokensVerificaitonPasswordResetPost(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	var input struct {
 		Email string `json:"email"`
 	}
@@ -161,7 +170,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWrite
 	msg := envelope{"message": verificationMsg}
 
 	// Check if user with email exists
-	exists, err := app.models.User.ExistsWithEmail(input.Email)
+	exists, err := app.db.Users.ExistsWithEmail(ctx, input.Email)
 	if err != nil {
 		return err
 	}
@@ -172,7 +181,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWrite
 	}
 
 	// Check if a verification token has already been created recently
-	exists, err = app.models.VerificationToken.Exists(data.ScopePasswordReset, input.Email, nil)
+	exists, err = app.db.VerificationTokens.Exists(ctx, data.ScopePasswordReset, input.Email)
 	if err != nil {
 		return err
 	}
@@ -181,15 +190,21 @@ func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWrite
 		return app.writeJSON(w, http.StatusOK, msg, nil)
 	}
 
-	t, err := app.models.VerificationToken.New(data.ScopePasswordReset, input.Email, nil)
+	token, err := crypto.NewToken(data.VerificationTokenTTL)
 	if err != nil {
 		return err
 	}
 
-	// Mail the plaintext token to the user's email address
+	// Create verification token for user with email address
+	err = app.db.VerificationTokens.New(ctx, token, data.ScopePasswordReset, input.Email)
+	if err != nil {
+		return err
+	}
+
+	// Mail the plaintext token to the provided email address
 	app.background(func() error {
 		data := map[string]any{
-			"token": t.Plaintext,
+			"token": token.Plaintext,
 		}
 
 		return app.sendMail(input.Email, "password-reset.tmpl", data)
@@ -198,7 +213,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWrite
 	return app.writeJSON(w, http.StatusOK, msg, nil)
 }
 
-func (app *application) tokensAuthenticationPost(w http.ResponseWriter, r *http.Request) error {
+func (app *application) tokensAuthenticationPost(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	var input struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -211,13 +226,18 @@ func (app *application) tokensAuthenticationPost(w http.ResponseWriter, r *http.
 
 	err = validation.ValidateStruct(&input,
 		validation.Field(&input.Email, validation.Required, is.Email),
-		validation.Field(&input.Password, validation.Required, data.PasswordLength),
+		validation.Field(&input.Password, validation.Required, passwordLength),
 	)
 	if err != nil {
 		return err
 	}
 
-	user, err := app.models.User.GetForCredentials(input.Email, input.Password)
+	passwordHash, err := crypto.PasswordHash(input.Password)
+	if err != nil {
+		return err
+	}
+
+	user, err := app.db.Users.GetForCredentials(ctx, input.Email, passwordHash)
 	if err != nil {
 		if err == data.ErrInvalidCredentials {
 			return app.writeError(w, http.StatusUnauthorized, InvalidCredentailsMessage)
@@ -226,10 +246,15 @@ func (app *application) tokensAuthenticationPost(w http.ResponseWriter, r *http.
 		return err
 	}
 
-	t, err := app.models.AuthenticationToken.New(user.ID)
+	token, err := crypto.NewToken(data.VerificationTokenTTL)
 	if err != nil {
 		return err
 	}
 
-	return app.writeJSON(w, http.StatusCreated, envelope{"authentication_token": t}, nil)
+	err = app.db.AuthenticationTokens.New(ctx, token, user.ID)
+	if err != nil {
+		return err
+	}
+
+	return app.writeJSON(w, http.StatusCreated, envelope{"authentication_token": token.Plaintext}, nil)
 }

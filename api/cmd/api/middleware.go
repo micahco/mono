@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"expvar"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/micahco/mono/shared/crypto"
 	"github.com/micahco/mono/shared/data"
 	"github.com/tomasen/realip"
 	"golang.org/x/time/rate"
@@ -144,8 +146,9 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 
 		authorizationHeader := r.Header.Get("Authorization")
 		if authorizationHeader == "" {
-			r = app.contextSetUser(r, data.AnonymousUser)
-			next.ServeHTTP(w, r)
+			// Create new context with request context setting user anon
+			ctx := app.contextSetUser(r.Context(), data.AnonymousUser)
+			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 
@@ -155,9 +158,14 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 			return
 		}
 
-		token := headerParts[1]
+		plaintextToken := headerParts[1]
+		tokenHash := crypto.TokenHash(plaintextToken)
 
-		user, err := app.models.User.GetForAuthenticationToken(token)
+		// Use same default timeout for accessing db in seperate context
+		dbCtx, cancel := context.WithTimeout(r.Context(), defaultTimeout)
+		defer cancel()
+
+		user, err := app.db.Users.GetForAuthenticationToken(dbCtx, tokenHash)
 		if err != nil {
 			switch {
 			case errors.Is(err, data.ErrRecordNotFound),
@@ -169,15 +177,15 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 			return
 		}
 
-		r = app.contextSetUser(r, user)
-
-		next.ServeHTTP(w, r)
+		// Add authenticated user to this request's context
+		ctx := app.contextSetUser(r.Context(), user)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 func (app *application) requireAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := app.contextGetUser(r)
+		user := app.contextGetUser(r.Context())
 
 		if user.IsAnonymous() {
 			app.errorResponse(w, http.StatusUnauthorized, AuthenticationRequiredMessage)

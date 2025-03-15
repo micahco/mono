@@ -13,15 +13,18 @@ import (
 	"syscall"
 	"time"
 
+	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/micahco/mono/shared/data"
 	"github.com/micahco/mono/shared/mailer"
 )
+
+var passwordLength = validation.Length(8, 72)
 
 type application struct {
 	config config
 	logger *slog.Logger
 	mailer *mailer.Mailer
-	models data.Models
+	db     data.DB
 	wg     sync.WaitGroup
 }
 
