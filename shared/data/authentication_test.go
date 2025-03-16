@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micahco/mono/shared/crypto"
 	"github.com/micahco/mono/shared/data"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,21 +18,20 @@ func runAuthenticationTokenRepositoryTests(t *testing.T, db *data.DB) {
 	testUser, err := db.Users.New(ctx, testEmail, validPassword)
 	assert.NoError(t, err)
 
-	// Generate a token
-	token, err := crypto.NewToken(data.AuthenticationTokenTTL)
-	assert.NoError(t, err)
+	tokenHash := []byte("test_token")
+	expiry := time.Now().Add(time.Hour)
 
 	t.Run("TestNew", func(t *testing.T) {
-		err = db.AuthenticationTokens.New(ctx, token, testUser.ID)
+		err = db.AuthenticationTokens.New(ctx, tokenHash, expiry, testUser.ID)
 		assert.NoError(t, err)
 	})
 
 	t.Run("TestGet", func(t *testing.T) {
-		at, err := db.AuthenticationTokens.Get(ctx, token.Hash)
+		at, err := db.AuthenticationTokens.Get(ctx, tokenHash)
 		assert.NoError(t, err)
 		assert.NotNil(t, at)
-		assert.Equal(t, token.Hash, at.Hash)
-		assert.WithinDuration(t, at.Expiry, time.Now(), data.AuthenticationTokenTTL)
+		assert.Equal(t, tokenHash, at.Hash)
+		assert.WithinDuration(t, at.Expiry, expiry, time.Minute)
 		assert.Equal(t, testUser.ID, at.UserID)
 	})
 
@@ -41,7 +39,7 @@ func runAuthenticationTokenRepositoryTests(t *testing.T, db *data.DB) {
 		err = db.AuthenticationTokens.Purge(ctx, testUser.ID)
 		assert.NoError(t, err)
 
-		_, err := db.AuthenticationTokens.Get(ctx, token.Hash)
+		_, err := db.AuthenticationTokens.Get(ctx, tokenHash)
 		assert.ErrorIs(t, err, data.ErrRecordNotFound)
 	})
 }

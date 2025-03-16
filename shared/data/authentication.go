@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/micahco/mono/shared/crypto"
 	"github.com/micahco/mono/shared/data/internal/uuid"
 )
 
@@ -12,7 +11,7 @@ import (
 const AuthenticationTokenTTL = time.Hour * 36
 
 type AuthenticationTokenRepository interface {
-	New(ctx context.Context, token crypto.Token, userID uuid.UUID) error
+	New(ctx context.Context, tokenHash []byte, expiry time.Time, userID uuid.UUID) error
 	Get(ctx context.Context, tokenHash []byte) (*AuthenticationToken, error)
 	Purge(ctx context.Context, userID uuid.UUID) error
 }

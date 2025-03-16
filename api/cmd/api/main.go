@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"expvar"
 	"flag"
 	"fmt"
@@ -14,8 +13,6 @@ import (
 	"strings"
 	"time"
 
-	pgxuuid "github.com/jackc/pgx-gofrs-uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmittmann/tint"
 	"github.com/micahco/mono/shared/data/postgres"
@@ -141,32 +138,6 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
-}
-
-func openPool(dsn string) (*pgxpool.Pool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	cfg, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		return nil, err
-	}
-	cfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		pgxuuid.Register(conn.TypeMap())
-		return nil
-	}
-
-	dbpool, err := pgxpool.NewWithConfig(ctx, cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	err = dbpool.Ping(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return dbpool, err
 }
 
 func newSlogHandler(dev bool) slog.Handler {

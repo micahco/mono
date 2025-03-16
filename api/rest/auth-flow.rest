@@ -14,8 +14,8 @@ content-type: application/json
 
 {
     "email": "johndoe@example.com",
-    "password": "helloworld",
-    "token": "BV5FCUSQYBD5DE2XFGCWP72MSI"
+    "password": "super_secret_password",
+    "token": "3OGL2FBMKCEHOO6W3BJMSMAUJU"
 }
 
 ### Request authentication token in exchange for credentials
@@ -24,12 +24,12 @@ content-type: application/json
 
 {
     "email": "johndoe@example.com",
-    "password": "helloworld"
+    "password": "super_secret_password"
 }
 
 ### Use auth token to get user information
 GET http://localhost:4000/v1/users/me HTTP/1.1
-Authorization: Bearer MBPIW4MBKBUM57RPEMOJ6I27JE
+Authorization: Bearer OS7STHS2RU3MC7BHEMRJTPHSHM
 
 ### Request a verification token to change email
 POST http://localhost:4000/v1/tokens/verification/email-change HTTP/1.1

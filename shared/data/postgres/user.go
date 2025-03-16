@@ -1,7 +1,6 @@
 package postgres
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"time"
@@ -27,7 +26,10 @@ func (r *UserRepository) New(ctx context.Context, email string, passwordHash []b
 		INSERT INTO user_ (email_, password_hash_)
 		VALUES($1, $2)
 		RETURNING id_, version_, created_at_;`
-	args := []any{u.Email, u.PasswordHash}
+	args := []any{
+		u.Email,
+		u.PasswordHash,
+	}
 	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
 		&u.ID,
 		&u.Version,
@@ -51,7 +53,9 @@ func (r *UserRepository) Get(ctx context.Context, id uuid.UUID) (*data.User, err
 	sql := `
 		SELECT id_, version_, created_at_, email_, password_hash_
 		FROM user_ WHERE id_ = $1;`
-	args := []any{id}
+	args := []any{
+		id,
+	}
 	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
 		&u.ID,
 		&u.Version,
@@ -71,13 +75,15 @@ func (r *UserRepository) Get(ctx context.Context, id uuid.UUID) (*data.User, err
 	return &u, nil
 }
 
-func (r *UserRepository) GetForCredentials(ctx context.Context, email string, passwordHash []byte) (*data.User, error) {
+func (r *UserRepository) GetForCredentials(ctx context.Context, email, plaintextPassword string, cmp data.ComparePasswordAndHash) (*data.User, error) {
 	var u data.User
 
 	sql := `
 		SELECT id_, version_, created_at_, email_, password_hash_
 		FROM user_ WHERE email_ = $1;`
-	args := []any{email}
+	args := []any{
+		email,
+	}
 	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
 		&u.ID,
 		&u.Version,
@@ -94,7 +100,11 @@ func (r *UserRepository) GetForCredentials(ctx context.Context, email string, pa
 		}
 	}
 
-	if !bytes.Equal(passwordHash, u.PasswordHash) {
+	match, err := cmp(plaintextPassword, u.PasswordHash)
+	if err != nil {
+		return nil, err
+	}
+	if !match {
 		return nil, data.ErrInvalidCredentials
 	}
 
@@ -113,7 +123,10 @@ func (r *UserRepository) GetForVerificationToken(ctx context.Context, scope stri
 		ON user_.id_ = verification_token_.user_id_
 		WHERE verification_token_.scope_ = $1
 		AND verification_token_.hash_ = $2;`
-	args := []any{scope, tokenHash}
+	args := []any{
+		scope,
+		tokenHash,
+	}
 	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
 		&u.ID,
 		&u.Version,
@@ -149,7 +162,9 @@ func (r *UserRepository) GetForAuthenticationToken(ctx context.Context, tokenHas
 		INNER JOIN authentication_token_
 		ON user_.id_ = authentication_token_.user_id_
 		WHERE authentication_token_.hash_ = $1;`
-	args := []any{tokenHash}
+	args := []any{
+		tokenHash,
+	}
 	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
 		&u.ID,
 		&u.Version,
@@ -183,7 +198,9 @@ func (r *UserRepository) ExistsWithEmail(ctx context.Context, email string) (boo
 			FROM user_
 			WHERE email_ = $1
 		);`
-	args := []any{email}
+	args := []any{
+		email,
+	}
 	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&exists)
 	if err != nil {
 		switch {

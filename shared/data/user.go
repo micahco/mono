@@ -7,10 +7,12 @@ import (
 	"github.com/micahco/mono/shared/data/internal/uuid"
 )
 
+type ComparePasswordAndHash func(plaintextPassword string, passwordHash []byte) (bool, error)
+
 type UserRepository interface {
 	New(ctx context.Context, email string, passwordHash []byte) (*User, error)
 	Get(ctx context.Context, id uuid.UUID) (*User, error)
-	GetForCredentials(ctx context.Context, email string, passwordHash []byte) (*User, error)
+	GetForCredentials(ctx context.Context, email, plaintextPassword string, cmp ComparePasswordAndHash) (*User, error)
 	GetForVerificationToken(ctx context.Context, scope string, tokenHash []byte) (*User, error)
 	GetForAuthenticationToken(ctx context.Context, tokenHash []byte) (*User, error)
 	ExistsWithEmail(ctx context.Context, email string) (bool, error)

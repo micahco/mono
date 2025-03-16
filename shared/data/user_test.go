@@ -3,12 +3,17 @@ package data_test
 import (
 	"context"
 	"testing"
+	"time"
 
-	"github.com/micahco/mono/shared/crypto"
 	"github.com/micahco/mono/shared/data"
 	"github.com/micahco/mono/shared/data/internal/uuid"
 	"github.com/stretchr/testify/assert"
 )
+
+func comparePasswordAndHash(plaintextPassword string, passwordHash []byte) (bool, error) {
+	match := plaintextPassword == string(passwordHash)
+	return match, nil
+}
 
 func runUserRepositoryTests(t *testing.T, db *data.DB) {
 	ctx := context.Background()
@@ -16,22 +21,22 @@ func runUserRepositoryTests(t *testing.T, db *data.DB) {
 	updatedEmail := "updated@gmail.com"
 	newEmail := "new@email.com"
 	nonExistantEmail := "unknown@email.com"
-	validPassword := []byte("super_secret_password")
-	incorrectPassword := []byte("incorrect_password")
+	validPassword := "super_secret_password"
+	incorrectPassword := "incorrect_password"
 	nonExistantID := uuid.Nil
 
 	var testUser *data.User
 
 	t.Run("TestNew", func(t *testing.T) {
 		var err error
-		testUser, err = db.Users.New(ctx, testEmail, validPassword)
+		testUser, err = db.Users.New(ctx, testEmail, []byte(validPassword))
 		assert.NoError(t, err)
 		assert.NotNil(t, testUser)
 		assert.Equal(t, int32(1), testUser.Version)
 		assert.Equal(t, testEmail, testUser.Email)
 
 		// Duplicate email
-		_, err = db.Users.New(ctx, testEmail, validPassword)
+		_, err = db.Users.New(ctx, testEmail, []byte(validPassword))
 		assert.ErrorIs(t, err, data.ErrDuplicateEmail)
 	})
 
@@ -43,27 +48,26 @@ func runUserRepositoryTests(t *testing.T, db *data.DB) {
 	})
 
 	t.Run("TestGetForCredentials", func(t *testing.T) {
-		readUser, err := db.Users.GetForCredentials(ctx, testEmail, validPassword)
+		readUser, err := db.Users.GetForCredentials(ctx, testEmail, validPassword, comparePasswordAndHash)
 		assert.NoError(t, err)
 		assert.NotNil(t, readUser)
 		assert.Equal(t, testUser, readUser)
 
 		// Incorrect credentials
-		_, err = db.Users.GetForCredentials(ctx, testEmail, incorrectPassword)
+		_, err = db.Users.GetForCredentials(ctx, testEmail, incorrectPassword, comparePasswordAndHash)
 		assert.ErrorIs(t, err, data.ErrInvalidCredentials)
 	})
 
 	t.Run("TestGetForAuthenticationToken", func(t *testing.T) {
-		// Generate a token
-		token, err := crypto.NewToken(data.AuthenticationTokenTTL)
-		assert.NoError(t, err)
+		tokenHash := []byte("test_token")
+		expiry := time.Now().Add(time.Hour)
 
 		// Put token in db
-		err = db.AuthenticationTokens.New(ctx, token, testUser.ID)
+		err := db.AuthenticationTokens.New(ctx, tokenHash, expiry, testUser.ID)
 		assert.NoError(t, err)
 
 		// Get user with token
-		readUser, err := db.Users.GetForAuthenticationToken(ctx, token.Hash)
+		readUser, err := db.Users.GetForAuthenticationToken(ctx, tokenHash)
 		assert.NoError(t, err)
 		assert.NotNil(t, readUser)
 		assert.Equal(t, testUser, readUser)
@@ -98,7 +102,7 @@ func runUserRepositoryTests(t *testing.T, db *data.DB) {
 		assert.ErrorIs(t, err, data.ErrEditConflict)
 
 		// Duplicate email
-		newUser, err := db.Users.New(ctx, newEmail, validPassword)
+		newUser, err := db.Users.New(ctx, newEmail, []byte(validPassword))
 		assert.NoError(t, err)
 		assert.NotNil(t, newUser)
 		assert.Equal(t, newEmail, newUser.Email)

@@ -7,7 +7,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/micahco/mono/shared/crypto"
 	"github.com/micahco/mono/shared/data"
 )
 
@@ -16,10 +15,10 @@ type VerificationTokenRepository struct {
 }
 
 // Create a verification token for an email without an associated User
-func (r *VerificationTokenRepository) New(ctx context.Context, token crypto.Token, scope, email string) error {
+func (r *VerificationTokenRepository) New(ctx context.Context, tokenHash []byte, expiry time.Time, scope, email string) error {
 	vt := &data.VerificationToken{
-		Hash:   token.Hash,
-		Expiry: token.Expiry,
+		Hash:   tokenHash,
+		Expiry: expiry,
 		Scope:  scope,
 		Email:  email,
 	}
@@ -27,7 +26,12 @@ func (r *VerificationTokenRepository) New(ctx context.Context, token crypto.Toke
 	sql := `
 		INSERT INTO verification_token_ (hash_, expiry_, scope_, email_)
 		VALUES($1, $2, $3, $4);`
-	args := []any{vt.Hash, vt.Expiry, vt.Scope, vt.Email}
+	args := []any{
+		vt.Hash,
+		vt.Expiry,
+		vt.Scope,
+		vt.Email,
+	}
 	_, err := r.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
@@ -42,7 +46,9 @@ func (r *VerificationTokenRepository) Get(ctx context.Context, tokenHash []byte)
 	sql := `
 		SELECT hash_, expiry_, scope_, email_
 		FROM verification_token_ WHERE hash_ = $1;`
-	args := []any{tokenHash}
+	args := []any{
+		tokenHash,
+	}
 	err := r.Pool.QueryRow(ctx, sql, args...).Scan(
 		&vt.Hash,
 		&vt.Expiry,
@@ -71,7 +77,10 @@ func (r *VerificationTokenRepository) Exists(ctx context.Context, scope, email s
 			WHERE scope_ = $1
 			AND email_ = $2
 		);`
-	args := []any{scope, email}
+	args := []any{
+		scope,
+		email,
+	}
 	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&exists)
 	if err != nil {
 		switch {
@@ -89,7 +98,9 @@ func (r *VerificationTokenRepository) Purge(ctx context.Context, email string) e
 	sql := `
 		DELETE FROM verification_token_
 		WHERE email_ = $1;`
-	args := []any{email}
+	args := []any{
+		email,
+	}
 	_, err := r.Pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
@@ -107,7 +118,11 @@ func (r *VerificationTokenRepository) Verify(ctx context.Context, tokenHash []by
 		WHERE hash_ = $1
 		AND scope_ = $2
 		AND email_ = $3;`
-	args := []any{tokenHash, scope, email}
+	args := []any{
+		tokenHash,
+		scope,
+		email,
+	}
 	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&expiry)
 	if err != nil {
 		switch {

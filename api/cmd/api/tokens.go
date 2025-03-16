@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
@@ -14,6 +15,27 @@ const (
 	verificationMsg  = "A verification email has been sent. Please check your inbox."
 	passwordResetMsg = "If that email address is in our database, a token to reset your password will be sent to that address."
 )
+
+type Token struct {
+	Plaintext string
+	Hash      []byte
+	Expiry    time.Time
+}
+
+func newToken(ttl time.Duration) (Token, error) {
+	var token Token
+	var err error
+
+	token.Plaintext, err = crypto.GeneratePlaintextToken()
+	if err != nil {
+		return token, err
+	}
+
+	token.Hash = crypto.TokenHash(token.Plaintext)
+	token.Expiry = time.Now().Add(ttl)
+
+	return token, nil
+}
 
 // Create a verification token with registration scope and
 // mail it to the provided email address.
@@ -60,12 +82,13 @@ func (app *application) tokensVerificaitonRegistrationPost(ctx context.Context, 
 		return app.writeJSON(w, http.StatusOK, msg, nil)
 	}
 
-	token, err := crypto.NewToken(data.VerificationTokenTTL)
+	// Create new token for user
+	token, err := newToken(data.VerificationTokenTTL)
 	if err != nil {
 		return err
 	}
 
-	err = app.db.VerificationTokens.New(ctx, token, data.ScopeRegistration, input.Email)
+	err = app.db.VerificationTokens.New(ctx, token.Hash, token.Expiry, data.ScopeRegistration, input.Email)
 	if err != nil {
 		return err
 	}
@@ -125,13 +148,13 @@ func (app *application) tokensVerificaitonEmailChangePost(ctx context.Context, w
 		return app.writeJSON(w, http.StatusOK, msg, nil)
 	}
 
-	token, err := crypto.NewToken(data.VerificationTokenTTL)
+	// Create verification token for user with new email address
+	token, err := newToken(data.VerificationTokenTTL)
 	if err != nil {
 		return err
 	}
 
-	// Create verification token for user with new email address
-	err = app.db.VerificationTokens.New(ctx, token, data.ScopeEmailChange, input.Email)
+	err = app.db.VerificationTokens.New(ctx, token.Hash, token.Expiry, data.ScopeEmailChange, input.Email)
 	if err != nil {
 		return err
 	}
@@ -190,13 +213,13 @@ func (app *application) tokensVerificaitonPasswordResetPost(ctx context.Context,
 		return app.writeJSON(w, http.StatusOK, msg, nil)
 	}
 
-	token, err := crypto.NewToken(data.VerificationTokenTTL)
+	token, err := newToken(data.VerificationTokenTTL)
 	if err != nil {
 		return err
 	}
 
 	// Create verification token for user with email address
-	err = app.db.VerificationTokens.New(ctx, token, data.ScopePasswordReset, input.Email)
+	err = app.db.VerificationTokens.New(ctx, token.Hash, token.Expiry, data.ScopePasswordReset, input.Email)
 	if err != nil {
 		return err
 	}
@@ -232,12 +255,7 @@ func (app *application) tokensAuthenticationPost(ctx context.Context, w http.Res
 		return err
 	}
 
-	passwordHash, err := crypto.PasswordHash(input.Password)
-	if err != nil {
-		return err
-	}
-
-	user, err := app.db.Users.GetForCredentials(ctx, input.Email, passwordHash)
+	user, err := app.db.Users.GetForCredentials(ctx, input.Email, input.Password, crypto.ComparePasswordAndHash)
 	if err != nil {
 		if err == data.ErrInvalidCredentials {
 			return app.writeError(w, http.StatusUnauthorized, InvalidCredentailsMessage)
@@ -245,13 +263,13 @@ func (app *application) tokensAuthenticationPost(ctx context.Context, w http.Res
 
 		return err
 	}
-
-	token, err := crypto.NewToken(data.VerificationTokenTTL)
+	// Create verification token for user with new email address
+	token, err := newToken(data.VerificationTokenTTL)
 	if err != nil {
 		return err
 	}
 
-	err = app.db.AuthenticationTokens.New(ctx, token, user.ID)
+	err = app.db.AuthenticationTokens.New(ctx, token.Hash, token.Expiry, user.ID)
 	if err != nil {
 		return err
 	}
