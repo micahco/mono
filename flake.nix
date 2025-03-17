@@ -36,8 +36,9 @@
             gocode-gomod
             godef
             golint
-            go-migrate
+            dbmate
             gnumake
+            goose
           ];
         };
       });

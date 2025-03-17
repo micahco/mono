@@ -1,0 +1,17 @@
+FROM golang:1.24.1-alpine
+
+RUN go install github.com/air-verse/air@latest
+
+WORKDIR /app
+
+COPY go.work go.work.sum ./
+
+COPY migrations/ ./migrations/
+
+COPY shared/ ./shared/
+
+COPY api/ ./api/
+
+WORKDIR /app/api
+
+CMD ["air", "-c", "air.toml"]

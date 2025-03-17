@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE EXTENSION IF NOT EXISTS citext;
 
 CREATE TABLE IF NOT EXISTS user_ (
@@ -7,3 +9,9 @@ CREATE TABLE IF NOT EXISTS user_ (
     email_ CITEXT UNIQUE NOT NULL,
     password_hash_ BYTEA NOT NULL
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS user_;
+-- +goose StatementEnd

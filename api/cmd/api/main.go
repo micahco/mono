@@ -52,7 +52,6 @@ func main() {
 	var cfg config
 
 	flag.BoolVar(&cfg.dev, "dev", false, "Development mode")
-	flag.IntVar(&cfg.port, "port", getEnvInt("API_PORT"), "API server port")
 
 	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("DATABASE_URL"), "PostgreSQL DSN")
 
@@ -62,6 +61,7 @@ func main() {
 	flag.StringVar(&cfg.smtp.password, "smtp-password", os.Getenv("SMTP_PASSWORD"), "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", os.Getenv("API_SMTP_SENDER"), "SMTP sender")
 
+	flag.IntVar(&cfg.port, "port", getEnvInt("API_PORT"), "API server port")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", getEnvBool("API_LIMITER_ENABLED"), "Enable rate limiter")
 	flag.IntVar(&cfg.limiter.rps, "limiter-rps", getEnvInt("API_LIMITER_RPS"), "Rate limiter maximum requests per second")
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", getEnvInt("API_LIMITER_BURST"), "Rate limiter maximum burst")
@@ -106,7 +106,7 @@ func main() {
 		Name:    "Do Not Reply",
 		Address: cfg.smtp.sender,
 	}
-	logger.Info("dialing SMTP server...")
+	logger.Info("dialing SMTP server...", slog.String("host", cfg.smtp.host))
 	m, err := mailer.New(
 		cfg.smtp.host,
 		cfg.smtp.port,

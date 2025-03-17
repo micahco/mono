@@ -29,12 +29,6 @@ build:
 	go build -ldflags=${linker_flags} -o=./bin/api ./cmd/api
 
 ## run: run the cmd/api application
-# override env vars to use localhost
-database_url = 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable'
-smtp_host = 'localhost'
-
 .PHONY: run
 run:
-	go run ./cmd/api -dev \
-	-db-dsn=${database_url} \
-	-smtp-host=${smtp_host}
+	go run ./cmd/api -dev

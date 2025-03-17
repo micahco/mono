@@ -1,27 +1,34 @@
 package data_test
 
 import (
+	"os"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/micahco/mono/migrations"
 	"github.com/micahco/mono/shared/data/postgres"
 	"github.com/peterldowns/pgtestdb"
-	"github.com/peterldowns/pgtestdb/migrators/golangmigrator"
+	"github.com/peterldowns/pgtestdb/migrators/goosemigrator"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Create an ephemeral postgres db for testing
 func newPostgresDB(t *testing.T) *postgres.PostgresDB {
 	t.Helper()
+
+	port := os.Getenv("TESTDB_PORT")
+	require.NotEmpty(t, port, "missing env: PGTESTDB_PORT")
+
 	dbconf := pgtestdb.Config{
 		DriverName: "pgx",
 		User:       "postgres",
 		Password:   "password",
 		Host:       "127.0.0.1",
-		Port:       "5433", // non-default testing port
+		Port:       port,
 		Options:    "sslmode=disable",
 	}
-	m := golangmigrator.New("../../migrations")
+	m := goosemigrator.New("sql", goosemigrator.WithFS(migrations.Files))
 	c := pgtestdb.Custom(t, dbconf, m)
 	assert.NotEqual(t, dbconf, *c)
 
@@ -31,7 +38,6 @@ func newPostgresDB(t *testing.T) *postgres.PostgresDB {
 	return pg
 }
 
-// Test postgres implementation
 func TestPostgresUserRepository(t *testing.T) {
 	t.Parallel()
 

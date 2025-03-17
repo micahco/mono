@@ -3,3 +3,4 @@
 !.envrc.sample
 !.envrc.local
 .direnv
+tmp/

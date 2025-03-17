@@ -1,4 +1,3 @@
 use flake
 
 source_env .envrc.local
-source_env .envrc.secrets

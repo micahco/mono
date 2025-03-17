@@ -3,7 +3,6 @@
 ## Development
 
 ```
-touch .envrc.secrets
 cp .envrc.sample .envrc
 direnv allow
 

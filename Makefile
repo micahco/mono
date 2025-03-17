@@ -13,19 +13,23 @@ db/psql:
 .PHONY: migrations/new
 migrations/new:
 	@echo "Creating migration files for ${label}..."
-	migrate create -seq -ext=.sql -dir=./migrations ${label}
+	goose -dir ./migrations/sql -s create ${label} sql
 
 ## migrations/up: apply all up database migrations
 .PHONY: migrations/up
 migrations/up:
 	@echo "Running up migrations..."
-	docker-compose run --rm migrate -path ./migrations -database ${DATABASE_URL} up
+	docker compose run --rm migrate up
 
-## migrations/drop: drop the entire databse schema
+## migrations/drop: drop the entire database schema
 .PHONY: migrations/drop
 migrations/drop:
 	@echo "Dropping the entire database schema..."
-	docker-compose run --rm migrate -path ./migrations -database ${DATABASE_URL} drop
+	docker compose run --rm migrate drop
+
+## migrations/reset: drop the database then apply all up migrations
+.PHONY: migrations/reset
+migrations/reset: migrations/drop migrations/up
 
 ## test: project-wide test suite
 .PHONY: test

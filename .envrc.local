@@ -1,20 +1,24 @@
 # Config for local development. This gets commited to 
 # version control, so don't put anything secret here.
 
-# database
+# pgtestdb
+export TESTDB_PORT=5678
+
+# postgres
 export POSTGRES_HOST="postgres.local"
 export POSTGRES_PORT=5432
 export POSTGRES_USER="postgres"
 export POSTGRES_PASSWORD="password"
 export POSTGRES_DB="postgres"
-export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB?sslmode=disable"
+export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable"
 
 # smtp
 export SMTP_HOST="smtp.local"
 export SMTP_PORT=2525
-export SMTP_WEB_PORT=4025
+export SMTP_WEB_PORT=5000
 
 # api
+export API_HOST="api.local"
 export API_PORT=4000
 export API_LIMITER_ENABLED=false
 export API_LIMITER_RPS=2
