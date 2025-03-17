@@ -19,13 +19,13 @@ migrations/new:
 .PHONY: migrations/up
 migrations/up:
 	@echo "Running up migrations..."
-	docker compose run --rm migrate up
+	docker compose run --rm migrate -up
 
 ## migrations/drop: drop the entire database schema
 .PHONY: migrations/drop
 migrations/drop:
 	@echo "Dropping the entire database schema..."
-	docker compose run --rm migrate drop
+	docker compose run --rm migrate -drop
 
 ## migrations/reset: drop the database then apply all up migrations
 .PHONY: migrations/reset

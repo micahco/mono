@@ -15,6 +15,7 @@ type UserRepository interface {
 	GetWithEmail(ctx context.Context, email string) (*User, error)
 	GetWithVerificationToken(ctx context.Context, scope string, tokenHash []byte) (*User, error)
 	GetWithAuthenticationToken(ctx context.Context, tokenHash []byte) (*User, error)
+	ExistsWithEmail(ctx context.Context, email string) (bool, error)
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }

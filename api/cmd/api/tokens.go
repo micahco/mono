@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -255,16 +256,28 @@ func (app *application) tokensAuthenticationPost(ctx context.Context, w http.Res
 		return err
 	}
 
-	user, err := app.db.Users.GetForCredentials(ctx, input.Email, input.Password, crypto.ComparePasswordAndHash)
+	user, err := app.db.Users.GetWithEmail(ctx, input.Email)
 	if err != nil {
-		if err == data.ErrInvalidCredentials {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			// User with email does not exist
 			return app.writeError(w, http.StatusUnauthorized, InvalidCredentailsMessage)
+		default:
+			return err
 		}
+	}
 
+	match, err := crypto.ComparePasswordAndHash(input.Password, user.PasswordHash)
+	if err != nil {
 		return err
 	}
-	// Create verification token for user with new email address
-	token, err := newToken(data.VerificationTokenTTL)
+	if !match {
+		// Incorrect password
+		return app.writeError(w, http.StatusUnauthorized, InvalidCredentailsMessage)
+	}
+
+	// Create authentication token for user with new email address
+	token, err := newToken(data.AuthenticationTokenTTL)
 	if err != nil {
 		return err
 	}

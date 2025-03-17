@@ -165,7 +165,7 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		dbCtx, cancel := context.WithTimeout(r.Context(), defaultTimeout)
 		defer cancel()
 
-		user, err := app.db.Users.GetForAuthenticationToken(dbCtx, tokenHash)
+		user, err := app.db.Users.GetWithAuthenticationToken(dbCtx, tokenHash)
 		if err != nil {
 			switch {
 			case errors.Is(err, data.ErrRecordNotFound),

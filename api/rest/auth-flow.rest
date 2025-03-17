@@ -5,7 +5,7 @@ POST http://localhost:4000/v1/tokens/verification/registration HTTP/1.1
 content-type: application/json
 
 {
-    "email": "johndoe@example.com"
+    "email": "test@example.com"
 }
 
 ### Use verificaiton token to create an account
@@ -13,9 +13,9 @@ POST http://localhost:4000/v1/users HTTP/1.1
 content-type: application/json
 
 {
-    "email": "johndoe@example.com",
+    "email": "test@example.com",
     "password": "super_secret_password",
-    "token": "3OGL2FBMKCEHOO6W3BJMSMAUJU"
+    "token": "ZLILFRIOCVJU5VKW4VL36NP7ZI"
 }
 
 ### Request authentication token in exchange for credentials
@@ -23,38 +23,63 @@ POST http://localhost:4000/v1/tokens/authentication HTTP/1.1
 content-type: application/json
 
 {
-    "email": "johndoe@example.com",
+    "email": "test@example.com",
     "password": "super_secret_password"
 }
 
 ### Use auth token to get user information
 GET http://localhost:4000/v1/users/me HTTP/1.1
-Authorization: Bearer OS7STHS2RU3MC7BHEMRJTPHSHM
+Authorization: Bearer ZQGIE5GOBYR6RSAFS4NXQDI5PA
 
 ### Request a verification token to change email
 POST http://localhost:4000/v1/tokens/verification/email-change HTTP/1.1
-Authorization: Bearer MBPIW4MBKBUM57RPEMOJ6I27JE
+Authorization: Bearer ZQGIE5GOBYR6RSAFS4NXQDI5PA
 content-type: application/json
 
 {
-    "email": "dames@domain.org"
+    "email": "updated@domain.org"
 }
 
 ### Update user with new email address
 PUT http://localhost:4000/v1/users/me HTTP/1.1
-Authorization: Bearer MBPIW4MBKBUM57RPEMOJ6I27JE
+Authorization: Bearer ZQGIE5GOBYR6RSAFS4NXQDI5PA
 content-type: application/json
 
 {
-    "email": "dames@domain.org",
-    "token": "PBKD6WANZYM6OBVIW6D4ZN5ZHM"
+    "email": "updated@domain.org",
+    "token": "OCKFTXLCV5FNIFNVUPQEFOFFLE"
 }
+
+### Check if email is updated
+GET http://localhost:4000/v1/users/me HTTP/1.1
+Authorization: Bearer ZQGIE5GOBYR6RSAFS4NXQDI5PA
 
 ### Request a password reset
-POST http://localhost:4000/v1/tokens/verification/email-change HTTP/1.1
-Authorization: Bearer MBPIW4MBKBUM57RPEMOJ6I27JE
+POST http://localhost:4000/v1/tokens/verification/password-reset HTTP/1.1
 content-type: application/json
 
 {
-    "email": "dames@domain.org"
+    "email": "updated@domain.org"
 }
+
+### Reset password
+PUT http://localhost:4000/v1/users/password HTTP/1.1
+content-type: application/json
+
+{
+    "password": "new_secret_password",
+    "token": "2VXQV7YAR3ZEBELUICK5FYKOVQ"
+}
+
+### Request authentication token in exchange for new credentials
+POST http://localhost:4000/v1/tokens/authentication HTTP/1.1
+content-type: application/json
+
+{
+    "email": "updated@domain.org",
+    "password": "new_secret_password"
+}
+
+### Use new auth token to get user information
+GET http://localhost:4000/v1/users/me HTTP/1.1
+Authorization: Bearer C4IG33FVLJXY4IR7MP7SRQCTE4

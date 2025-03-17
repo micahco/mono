@@ -10,11 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func comparePasswordAndHash(plaintextPassword string, passwordHash []byte) (bool, error) {
-	match := plaintextPassword == string(passwordHash)
-	return match, nil
-}
-
 func runUserRepositoryTests(t *testing.T, db *data.DB) {
 	ctx := context.Background()
 	testEmail := "test@email.com"
@@ -59,6 +54,21 @@ func runUserRepositoryTests(t *testing.T, db *data.DB) {
 		assert.ErrorIs(t, err, data.ErrRecordNotFound)
 	})
 
+	t.Run("TestGetWithVerificationToken", func(t *testing.T) {
+		tokenHash := []byte("test_token")
+		expiry := time.Now().Add(time.Hour)
+		scope := "testing"
+
+		// Put token in db
+		err := db.VerificationTokens.New(ctx, tokenHash, expiry, scope, testEmail)
+		assert.NoError(t, err)
+
+		// Get user with token
+		readUser, err := db.Users.GetWithVerificationToken(ctx, scope, tokenHash)
+		assert.NoError(t, err)
+		assert.Equal(t, testUser, readUser)
+	})
+
 	t.Run("TestGetWithAuthenticationToken", func(t *testing.T) {
 		tokenHash := []byte("test_token")
 		expiry := time.Now().Add(time.Hour)
@@ -70,8 +80,17 @@ func runUserRepositoryTests(t *testing.T, db *data.DB) {
 		// Get user with token
 		readUser, err := db.Users.GetWithAuthenticationToken(ctx, tokenHash)
 		assert.NoError(t, err)
-		assert.NotNil(t, readUser)
 		assert.Equal(t, testUser, readUser)
+	})
+
+	t.Run("TestExistsWithEmail", func(t *testing.T) {
+		exists, err := db.Users.ExistsWithEmail(ctx, testEmail)
+		assert.NoError(t, err)
+		assert.True(t, exists)
+
+		exists, err = db.Users.ExistsWithEmail(ctx, nonExistantEmail)
+		assert.NoError(t, err)
+		assert.False(t, exists)
 	})
 
 	t.Run("TestUpdate", func(t *testing.T) {

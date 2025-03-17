@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	validation "github.com/go-ozzo/ozzo-validation"
@@ -38,11 +39,11 @@ func (app *application) usersPost(ctx context.Context, w http.ResponseWriter, r 
 
 	err = app.db.VerificationTokens.Verify(ctx, tokenHash, data.ScopeRegistration, input.Email)
 	if err != nil {
-		switch err {
-		case data.ErrRecordNotFound:
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
 			return app.writeError(w, http.StatusUnauthorized, nil)
-		case data.ErrExpiredToken:
-			return app.writeError(w, http.StatusUnauthorized, "Expired token. Please signup again.")
+		case errors.Is(err, data.ErrExpiredToken):
+			return app.writeError(w, http.StatusUnauthorized, "Expired token")
 		default:
 			return err
 		}
@@ -88,9 +89,13 @@ func (app *application) usersPasswordPut(ctx context.Context, w http.ResponseWri
 
 	tokenHash := crypto.TokenHash(input.PlaintextToken)
 
-	user, err := app.db.Users.GetForVerificationToken(ctx, data.ScopePasswordReset, tokenHash)
+	user, err := app.db.Users.GetWithVerificationToken(ctx, data.ScopePasswordReset, tokenHash)
 	if err != nil {
 		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			return app.writeError(w, http.StatusUnauthorized, nil)
+		case errors.Is(err, data.ErrExpiredToken):
+			return app.writeError(w, http.StatusUnauthorized, "Expired token")
 		default:
 			return err
 		}
@@ -157,10 +162,10 @@ func (app *application) usersMePut(ctx context.Context, w http.ResponseWriter, r
 		tokenHash := crypto.TokenHash(*input.PlaintextToken)
 		err = app.db.VerificationTokens.Verify(ctx, tokenHash, data.ScopeEmailChange, *input.Email)
 		if err != nil {
-			switch err {
-			case data.ErrRecordNotFound:
+			switch {
+			case errors.Is(err, data.ErrRecordNotFound):
 				return app.writeError(w, http.StatusUnauthorized, nil)
-			case data.ErrExpiredToken:
+			case errors.Is(err, data.ErrExpiredToken):
 				return app.writeError(w, http.StatusUnauthorized, "Expired token")
 			default:
 				return err

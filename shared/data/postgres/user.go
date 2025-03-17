@@ -112,7 +112,7 @@ func (r *UserRepository) GetWithVerificationToken(ctx context.Context, scope str
 			user_.email_, user_.password_hash_, verification_token_.expiry_
 		FROM user_
 		INNER JOIN verification_token_
-		ON user_.id_ = verification_token_.user_id_
+		ON user_.email_ = verification_token_.email_
 		WHERE verification_token_.scope_ = $1
 		AND verification_token_.hash_ = $2;`
 	args := []any{
