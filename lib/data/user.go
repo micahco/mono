@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/micahco/mono/shared/data/internal/uuid"
+	"github.com/micahco/mono/lib/data/internal/uuid"
 )
 
 type ComparePasswordAndHash func(plaintextPassword string, passwordHash []byte) (bool, error)

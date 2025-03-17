@@ -4,11 +4,9 @@ RUN go install github.com/air-verse/air@latest
 
 WORKDIR /app
 
-COPY go.work go.work.sum ./
-
 COPY migrations/ ./migrations/
 
-COPY shared/ ./shared/
+COPY lib/ ./lib/
 
 COPY api/ ./api/
 

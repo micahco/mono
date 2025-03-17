@@ -67,7 +67,7 @@ services:
       - "-c"
       - "fsync=off"
       - "-c"
-      - "shared_buffers=1024MB"
+      - "lib_buffers=1024MB"
       - "-c"
       - "synchronous_commit=off"
       - "-c"
@@ -85,6 +85,11 @@ services:
     command:
       - "-s"
       - ${SMTP_PORT}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -O - http://localhost:1080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres-data:

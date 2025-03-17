@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micahco/mono/shared/data"
-	"github.com/micahco/mono/shared/data/internal/uuid"
+	"github.com/micahco/mono/lib/data"
+	"github.com/micahco/mono/lib/data/internal/uuid"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,4 +1,4 @@
-module github.com/micahco/mono/shared/mailer
+module github.com/micahco/mono/lib/mailer
 
 go 1.24.1
 

@@ -7,8 +7,8 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
-	"github.com/micahco/mono/shared/crypto"
-	"github.com/micahco/mono/shared/data"
+	"github.com/micahco/mono/lib/crypto"
+	"github.com/micahco/mono/lib/data"
 )
 
 // Create new user with email and password if provided token

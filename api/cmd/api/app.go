@@ -14,8 +14,8 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation"
-	"github.com/micahco/mono/shared/data"
-	"github.com/micahco/mono/shared/mailer"
+	"github.com/micahco/mono/lib/data"
+	"github.com/micahco/mono/lib/mailer"
 )
 
 var passwordLength = validation.Length(8, 72)

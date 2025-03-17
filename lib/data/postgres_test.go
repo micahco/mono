@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/micahco/mono/lib/data/postgres"
 	"github.com/micahco/mono/migrations"
-	"github.com/micahco/mono/shared/data/postgres"
 	"github.com/peterldowns/pgtestdb"
 	"github.com/peterldowns/pgtestdb/migrators/goosemigrator"
 	"github.com/stretchr/testify/assert"

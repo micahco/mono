@@ -15,8 +15,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmittmann/tint"
-	"github.com/micahco/mono/shared/data/postgres"
-	"github.com/micahco/mono/shared/mailer"
+	"github.com/micahco/mono/lib/data/postgres"
+	"github.com/micahco/mono/lib/mailer"
 )
 
 var (

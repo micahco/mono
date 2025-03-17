@@ -3,7 +3,7 @@ package crypto_test
 import (
 	"testing"
 
-	"github.com/micahco/mono/shared/crypto"
+	"github.com/micahco/mono/lib/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

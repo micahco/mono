@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/micahco/mono/shared/data"
+	"github.com/micahco/mono/lib/data"
 	"github.com/stretchr/testify/assert"
 )
 

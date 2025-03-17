@@ -4,3 +4,4 @@
 !.envrc.local
 .direnv
 tmp/
+go.work

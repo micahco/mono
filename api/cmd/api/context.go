@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/micahco/mono/shared/data"
+	"github.com/micahco/mono/lib/data"
 )
 
 type contextKey string

@@ -21,6 +21,10 @@ func NewMigrator(db *sql.DB) (*Migrator, error) {
 		return nil, err
 	}
 
+	if _, err := goose.EnsureDBVersion(db); err != nil {
+		return nil, err
+	}
+
 	return &Migrator{db}, nil
 }
 

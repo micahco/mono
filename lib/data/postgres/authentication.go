@@ -7,8 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/micahco/mono/shared/data"
-	"github.com/micahco/mono/shared/data/internal/uuid"
+	"github.com/micahco/mono/lib/data"
+	"github.com/micahco/mono/lib/data/internal/uuid"
 )
 
 type AuthenticationTokenRepository struct {

@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micahco/mono/shared/crypto"
-	"github.com/micahco/mono/shared/data"
+	"github.com/micahco/mono/lib/crypto"
+	"github.com/micahco/mono/lib/data"
 	"github.com/tomasen/realip"
 	"golang.org/x/time/rate"
 )
