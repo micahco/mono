@@ -21,22 +21,21 @@ func runUserRepositoryTests(t *testing.T, db *data.DB) {
 	updatedEmail := "updated@gmail.com"
 	newEmail := "new@email.com"
 	nonExistantEmail := "unknown@email.com"
-	validPassword := "super_secret_password"
-	incorrectPassword := "incorrect_password"
+	testPassword := "super_secret_password"
 	nonExistantID := uuid.Nil
 
 	var testUser *data.User
 
 	t.Run("TestNew", func(t *testing.T) {
 		var err error
-		testUser, err = db.Users.New(ctx, testEmail, []byte(validPassword))
+		testUser, err = db.Users.New(ctx, testEmail, []byte(testPassword))
 		assert.NoError(t, err)
 		assert.NotNil(t, testUser)
 		assert.Equal(t, int32(1), testUser.Version)
 		assert.Equal(t, testEmail, testUser.Email)
 
 		// Duplicate email
-		_, err = db.Users.New(ctx, testEmail, []byte(validPassword))
+		_, err = db.Users.New(ctx, testEmail, []byte(testPassword))
 		assert.ErrorIs(t, err, data.ErrDuplicateEmail)
 	})
 
@@ -45,20 +44,22 @@ func runUserRepositoryTests(t *testing.T, db *data.DB) {
 		assert.NoError(t, err)
 		assert.NotNil(t, readUser)
 		assert.Equal(t, testUser, readUser)
+
+		_, err = db.Users.Get(ctx, nonExistantID)
+		assert.ErrorIs(t, err, data.ErrRecordNotFound)
 	})
 
-	t.Run("TestGetForCredentials", func(t *testing.T) {
-		readUser, err := db.Users.GetForCredentials(ctx, testEmail, validPassword, comparePasswordAndHash)
+	t.Run("TestGetWithEmail", func(t *testing.T) {
+		readUser, err := db.Users.GetWithEmail(ctx, testEmail)
 		assert.NoError(t, err)
 		assert.NotNil(t, readUser)
 		assert.Equal(t, testUser, readUser)
 
-		// Incorrect credentials
-		_, err = db.Users.GetForCredentials(ctx, testEmail, incorrectPassword, comparePasswordAndHash)
-		assert.ErrorIs(t, err, data.ErrInvalidCredentials)
+		_, err = db.Users.GetWithEmail(ctx, nonExistantEmail)
+		assert.ErrorIs(t, err, data.ErrRecordNotFound)
 	})
 
-	t.Run("TestGetForAuthenticationToken", func(t *testing.T) {
+	t.Run("TestGetWithAuthenticationToken", func(t *testing.T) {
 		tokenHash := []byte("test_token")
 		expiry := time.Now().Add(time.Hour)
 
@@ -67,20 +68,10 @@ func runUserRepositoryTests(t *testing.T, db *data.DB) {
 		assert.NoError(t, err)
 
 		// Get user with token
-		readUser, err := db.Users.GetForAuthenticationToken(ctx, tokenHash)
+		readUser, err := db.Users.GetWithAuthenticationToken(ctx, tokenHash)
 		assert.NoError(t, err)
 		assert.NotNil(t, readUser)
 		assert.Equal(t, testUser, readUser)
-	})
-
-	t.Run("TestExistsWithEmail", func(t *testing.T) {
-		exists, err := db.Users.ExistsWithEmail(ctx, testEmail)
-		assert.NoError(t, err)
-		assert.True(t, exists)
-
-		exists, err = db.Users.ExistsWithEmail(ctx, nonExistantEmail)
-		assert.NoError(t, err)
-		assert.False(t, exists)
 	})
 
 	t.Run("TestUpdate", func(t *testing.T) {
@@ -102,7 +93,7 @@ func runUserRepositoryTests(t *testing.T, db *data.DB) {
 		assert.ErrorIs(t, err, data.ErrEditConflict)
 
 		// Duplicate email
-		newUser, err := db.Users.New(ctx, newEmail, []byte(validPassword))
+		newUser, err := db.Users.New(ctx, newEmail, []byte(testPassword))
 		assert.NoError(t, err)
 		assert.NotNil(t, newUser)
 		assert.Equal(t, newEmail, newUser.Email)

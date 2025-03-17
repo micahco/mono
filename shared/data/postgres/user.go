@@ -75,7 +75,7 @@ func (r *UserRepository) Get(ctx context.Context, id uuid.UUID) (*data.User, err
 	return &u, nil
 }
 
-func (r *UserRepository) GetForCredentials(ctx context.Context, email, plaintextPassword string, cmp data.ComparePasswordAndHash) (*data.User, error) {
+func (r *UserRepository) GetWithEmail(ctx context.Context, email string) (*data.User, error) {
 	var u data.User
 
 	sql := `
@@ -100,18 +100,10 @@ func (r *UserRepository) GetForCredentials(ctx context.Context, email, plaintext
 		}
 	}
 
-	match, err := cmp(plaintextPassword, u.PasswordHash)
-	if err != nil {
-		return nil, err
-	}
-	if !match {
-		return nil, data.ErrInvalidCredentials
-	}
-
 	return &u, nil
 }
 
-func (r *UserRepository) GetForVerificationToken(ctx context.Context, scope string, tokenHash []byte) (*data.User, error) {
+func (r *UserRepository) GetWithVerificationToken(ctx context.Context, scope string, tokenHash []byte) (*data.User, error) {
 	var u data.User
 	var expiry time.Time
 
@@ -151,7 +143,7 @@ func (r *UserRepository) GetForVerificationToken(ctx context.Context, scope stri
 	return &u, nil
 }
 
-func (r *UserRepository) GetForAuthenticationToken(ctx context.Context, tokenHash []byte) (*data.User, error) {
+func (r *UserRepository) GetWithAuthenticationToken(ctx context.Context, tokenHash []byte) (*data.User, error) {
 	var u data.User
 	var expiry time.Time
 

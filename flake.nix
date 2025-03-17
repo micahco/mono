@@ -36,7 +36,6 @@
             gocode-gomod
             godef
             golint
-            dbmate
             gnumake
             goose
           ];
