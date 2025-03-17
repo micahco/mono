@@ -113,7 +113,6 @@ func main() {
 		cfg.smtp.username,
 		cfg.smtp.password,
 		sender,
-		"mail/*.tmpl",
 	)
 	if err != nil {
 		fatal(err)

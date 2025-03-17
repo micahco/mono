@@ -12,8 +12,8 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-//go:embed "templates"
-var Files embed.FS
+//go:embed "templates/*.tmpl"
+var efs embed.FS
 
 type Mailer struct {
 	dialer        *gomail.Dialer
@@ -22,11 +22,11 @@ type Mailer struct {
 }
 
 // Create new mailer with SMTP credentials and embedded fs using glob pattern
-func New(host string, port int, username string, password string, sender *mail.Address, globPattern string) (*Mailer, error) {
+func New(host string, port int, username string, password string, sender *mail.Address) (*Mailer, error) {
 	cache := map[string]*template.Template{}
 
 	// Get list of filenames in embed using pattern
-	filenames, err := fs.Glob(Files, globPattern)
+	filenames, err := fs.Glob(efs, "templates/*.tmpl")
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func New(host string, port int, username string, password string, sender *mail.A
 	for _, fname := range filenames {
 		name := filepath.Base(fname)
 
-		t, err := template.New(name).ParseFS(Files, fname)
+		t, err := template.New(name).ParseFS(efs, fname)
 		if err != nil {
 			return nil, err
 		}

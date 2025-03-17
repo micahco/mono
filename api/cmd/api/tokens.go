@@ -100,7 +100,7 @@ func (app *application) tokensVerificaitonRegistrationPost(ctx context.Context, 
 			"token": token.Plaintext,
 		}
 
-		return app.sendMail(input.Email, "registration.tmpl", data)
+		return app.mailer.Send(input.Email, "registration.tmpl", data)
 	})
 
 	return app.writeJSON(w, http.StatusOK, msg, nil)
@@ -166,7 +166,7 @@ func (app *application) tokensVerificaitonEmailChangePost(ctx context.Context, w
 			"token": token.Plaintext,
 		}
 
-		return app.sendMail(input.Email, "email-change.tmpl", data)
+		return app.mailer.Send(input.Email, "email-change.tmpl", data)
 	})
 
 	return app.writeJSON(w, http.StatusOK, msg, nil)
@@ -231,7 +231,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(ctx context.Context,
 			"token": token.Plaintext,
 		}
 
-		return app.sendMail(input.Email, "password-reset.tmpl", data)
+		return app.mailer.Send(input.Email, "password-reset.tmpl", data)
 	})
 
 	return app.writeJSON(w, http.StatusOK, msg, nil)

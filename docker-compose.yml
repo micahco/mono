@@ -34,7 +34,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: -up
+    command:
+      - "-drop"
+      - "-up"
 
   db:
     image: postgres:15
@@ -76,15 +78,13 @@ services:
       - "max_connections=1000"
 
   smtp:
-    image: rnwood/smtp4dev:v3
+    image: maildev/maildev:latest
     hostname: ${SMTP_HOST}
     ports:
-      - ${SMTP_WEB_PORT}:80
-    environment:
-      - ServerOptions__PORT=${SMTP_PORT}
-    volumes:
-      - smtp4dev-data:/smtp4dev
+      - ${SMTP_WEB_PORT}:1080
+    command:
+      - "-s"
+      - ${SMTP_PORT}
 
 volumes:
   postgres-data:
-  smtp4dev-data:
