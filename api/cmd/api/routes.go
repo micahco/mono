@@ -1,11 +1,10 @@
 package main
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/micahco/mono/lib/middleware"
 )
 
 // App router
@@ -14,16 +13,18 @@ func (app *application) routes() http.Handler {
 
 	// Middleware
 	r.Use(middleware.StripSlashes)
-	r.Use(app.metrics)
-	r.Use(app.recovery)
-	r.Use(app.enableCORS)
-	r.Use(app.rateLimit)
+	r.Use(middleware.Metrics)
+	r.Use(middleware.Recoverer(app.serverErrorResponse))
+	r.Use(middleware.EnableCORS(app.config.cors.trustedOrigins))
+	if app.config.limiter.enabled {
+		r.Use(middleware.RateLimit(app.errorResponse, app.config.limiter.rps, app.config.limiter.burst))
+	}
 	r.Use(app.authenticate)
 	r.NotFound(app.handle(app.notFound))
 	r.MethodNotAllowed(app.handle(app.methodNotAllowed))
 
 	// Metrics
-	r.Mount("/debug", middleware.Profiler())
+	//r.Mount("/debug", middleware.Profiler())
 
 	// API
 	r.Route("/v1", func(r chi.Router) {
@@ -60,15 +61,23 @@ func (app *application) routes() http.Handler {
 	return r
 }
 
-func (app *application) notFound(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (app *application) handle(h middleware.HandlerFunc) http.HandlerFunc {
+	return middleware.WithErrorHandling(
+		h,
+		app.errorResponse,
+		app.serverErrorResponse,
+	)
+}
+
+func (app *application) notFound(w http.ResponseWriter, r *http.Request) error {
 	return app.writeError(w, http.StatusNotFound, nil)
 }
 
-func (app *application) methodNotAllowed(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (app *application) methodNotAllowed(w http.ResponseWriter, r *http.Request) error {
 	return app.writeError(w, http.StatusMethodNotAllowed, nil)
 }
 
-func (app *application) healthcheck(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (app *application) healthcheck(w http.ResponseWriter, r *http.Request) error {
 	env := "production"
 	if app.config.dev {
 		env = "development"

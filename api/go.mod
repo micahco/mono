@@ -10,15 +10,15 @@ require (
 	github.com/micahco/mono/lib/crypto v0.0.0
 	github.com/micahco/mono/lib/data v0.0.0
 	github.com/micahco/mono/lib/mailer v0.0.0
+	github.com/micahco/mono/lib/middleware v0.0.0
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	golang.org/x/time v0.11.0
 )
 
 replace github.com/micahco/mono/lib/crypto v0.0.0 => ../lib/crypto
-
 replace github.com/micahco/mono/lib/data v0.0.0 => ../lib/data
-
 replace github.com/micahco/mono/lib/mailer v0.0.0 => ../lib/mailer
+replace github.com/micahco/mono/lib/middleware v0.0.0 => ../lib/middleware
 
 require (
 	github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c // indirect

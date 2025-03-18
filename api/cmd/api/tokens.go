@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"time"
@@ -40,7 +39,7 @@ func newToken(ttl time.Duration) (Token, error) {
 
 // Create a verification token with registration scope and
 // mail it to the provided email address.
-func (app *application) tokensVerificaitonRegistrationPost(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter, r *http.Request) error {
 	var input struct {
 		Email string `json:"email"`
 	}
@@ -62,7 +61,7 @@ func (app *application) tokensVerificaitonRegistrationPost(ctx context.Context, 
 	msg := envelope{"message": verificationMsg}
 
 	// Check if user with email already exists
-	exists, err := app.db.Users.ExistsWithEmail(ctx, input.Email)
+	exists, err := app.db.Users.ExistsWithEmail(r.Context(), input.Email)
 	if err != nil {
 		return err
 	}
@@ -73,7 +72,7 @@ func (app *application) tokensVerificaitonRegistrationPost(ctx context.Context, 
 	}
 
 	// Check if a verification token has already been created recently
-	exists, err = app.db.VerificationTokens.Exists(ctx, data.ScopeRegistration, input.Email)
+	exists, err = app.db.VerificationTokens.Exists(r.Context(), data.ScopeRegistration, input.Email)
 	if err != nil {
 		return err
 	}
@@ -89,7 +88,7 @@ func (app *application) tokensVerificaitonRegistrationPost(ctx context.Context, 
 		return err
 	}
 
-	err = app.db.VerificationTokens.New(ctx, token.Hash, token.Expiry, data.ScopeRegistration, input.Email)
+	err = app.db.VerificationTokens.New(r.Context(), token.Hash, token.Expiry, data.ScopeRegistration, input.Email)
 	if err != nil {
 		return err
 	}
@@ -106,7 +105,7 @@ func (app *application) tokensVerificaitonRegistrationPost(ctx context.Context, 
 	return app.writeJSON(w, http.StatusOK, msg, nil)
 }
 
-func (app *application) tokensVerificaitonEmailChangePost(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter, r *http.Request) error {
 	var input struct {
 		Email string `json:"email"`
 	}
@@ -128,7 +127,7 @@ func (app *application) tokensVerificaitonEmailChangePost(ctx context.Context, w
 	msg := envelope{"message": verificationMsg}
 
 	// Check if user with email already exists
-	exists, err := app.db.Users.ExistsWithEmail(ctx, input.Email)
+	exists, err := app.db.Users.ExistsWithEmail(r.Context(), input.Email)
 	if err != nil {
 		return err
 	}
@@ -139,7 +138,7 @@ func (app *application) tokensVerificaitonEmailChangePost(ctx context.Context, w
 	}
 
 	// Check if a verification token has already been created recently
-	exists, err = app.db.VerificationTokens.Exists(ctx, data.ScopeEmailChange, input.Email)
+	exists, err = app.db.VerificationTokens.Exists(r.Context(), data.ScopeEmailChange, input.Email)
 	if err != nil {
 		return err
 	}
@@ -155,7 +154,7 @@ func (app *application) tokensVerificaitonEmailChangePost(ctx context.Context, w
 		return err
 	}
 
-	err = app.db.VerificationTokens.New(ctx, token.Hash, token.Expiry, data.ScopeEmailChange, input.Email)
+	err = app.db.VerificationTokens.New(r.Context(), token.Hash, token.Expiry, data.ScopeEmailChange, input.Email)
 	if err != nil {
 		return err
 	}
@@ -172,7 +171,7 @@ func (app *application) tokensVerificaitonEmailChangePost(ctx context.Context, w
 	return app.writeJSON(w, http.StatusOK, msg, nil)
 }
 
-func (app *application) tokensVerificaitonPasswordResetPost(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWriter, r *http.Request) error {
 	var input struct {
 		Email string `json:"email"`
 	}
@@ -194,7 +193,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(ctx context.Context,
 	msg := envelope{"message": verificationMsg}
 
 	// Check if user with email exists
-	exists, err := app.db.Users.ExistsWithEmail(ctx, input.Email)
+	exists, err := app.db.Users.ExistsWithEmail(r.Context(), input.Email)
 	if err != nil {
 		return err
 	}
@@ -205,7 +204,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(ctx context.Context,
 	}
 
 	// Check if a verification token has already been created recently
-	exists, err = app.db.VerificationTokens.Exists(ctx, data.ScopePasswordReset, input.Email)
+	exists, err = app.db.VerificationTokens.Exists(r.Context(), data.ScopePasswordReset, input.Email)
 	if err != nil {
 		return err
 	}
@@ -220,7 +219,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(ctx context.Context,
 	}
 
 	// Create verification token for user with email address
-	err = app.db.VerificationTokens.New(ctx, token.Hash, token.Expiry, data.ScopePasswordReset, input.Email)
+	err = app.db.VerificationTokens.New(r.Context(), token.Hash, token.Expiry, data.ScopePasswordReset, input.Email)
 	if err != nil {
 		return err
 	}
@@ -237,7 +236,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(ctx context.Context,
 	return app.writeJSON(w, http.StatusOK, msg, nil)
 }
 
-func (app *application) tokensAuthenticationPost(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (app *application) tokensAuthenticationPost(w http.ResponseWriter, r *http.Request) error {
 	var input struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -256,7 +255,7 @@ func (app *application) tokensAuthenticationPost(ctx context.Context, w http.Res
 		return err
 	}
 
-	user, err := app.db.Users.GetWithEmail(ctx, input.Email)
+	user, err := app.db.Users.GetWithEmail(r.Context(), input.Email)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -282,7 +281,7 @@ func (app *application) tokensAuthenticationPost(ctx context.Context, w http.Res
 		return err
 	}
 
-	err = app.db.AuthenticationTokens.New(ctx, token.Hash, token.Expiry, user.ID)
+	err = app.db.AuthenticationTokens.New(r.Context(), token.Hash, token.Expiry, user.ID)
 	if err != nil {
 		return err
 	}

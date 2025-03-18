@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"net/http"
 
@@ -13,7 +12,7 @@ import (
 
 // Create new user with email and password if provided token
 // matches verification.
-func (app *application) usersPost(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (app *application) usersPost(w http.ResponseWriter, r *http.Request) error {
 	var input struct {
 		Email          string `json:"email"`
 		Password       string `json:"password"`
@@ -37,7 +36,7 @@ func (app *application) usersPost(ctx context.Context, w http.ResponseWriter, r 
 
 	tokenHash := crypto.TokenHash(input.PlaintextToken)
 
-	err = app.db.VerificationTokens.Verify(ctx, tokenHash, data.ScopeRegistration, input.Email)
+	err = app.db.VerificationTokens.Verify(r.Context(), tokenHash, data.ScopeRegistration, input.Email)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -49,7 +48,7 @@ func (app *application) usersPost(ctx context.Context, w http.ResponseWriter, r 
 		}
 	}
 
-	err = app.db.VerificationTokens.Purge(ctx, input.Email)
+	err = app.db.VerificationTokens.Purge(r.Context(), input.Email)
 	if err != nil {
 		return err
 	}
@@ -59,7 +58,7 @@ func (app *application) usersPost(ctx context.Context, w http.ResponseWriter, r 
 		return err
 	}
 
-	user, err := app.db.Users.New(ctx, input.Email, passwordHash)
+	user, err := app.db.Users.New(r.Context(), input.Email, passwordHash)
 	if err != nil {
 		return err
 	}
@@ -68,7 +67,7 @@ func (app *application) usersPost(ctx context.Context, w http.ResponseWriter, r 
 }
 
 // Password reset handler
-func (app *application) usersPasswordPut(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (app *application) usersPasswordPut(w http.ResponseWriter, r *http.Request) error {
 	var input struct {
 		NewPassword    string `json:"password"`
 		PlaintextToken string `json:"token"`
@@ -89,7 +88,7 @@ func (app *application) usersPasswordPut(ctx context.Context, w http.ResponseWri
 
 	tokenHash := crypto.TokenHash(input.PlaintextToken)
 
-	user, err := app.db.Users.GetWithVerificationToken(ctx, data.ScopePasswordReset, tokenHash)
+	user, err := app.db.Users.GetWithVerificationToken(r.Context(), data.ScopePasswordReset, tokenHash)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -106,7 +105,7 @@ func (app *application) usersPasswordPut(ctx context.Context, w http.ResponseWri
 		return err
 	}
 
-	err = app.db.Users.Update(ctx, user)
+	err = app.db.Users.Update(r.Context(), user)
 	if err != nil {
 		switch {
 		default:
@@ -114,7 +113,7 @@ func (app *application) usersPasswordPut(ctx context.Context, w http.ResponseWri
 		}
 	}
 
-	err = app.db.VerificationTokens.Purge(ctx, user.Email)
+	err = app.db.VerificationTokens.Purge(r.Context(), user.Email)
 	if err != nil {
 		return err
 	}
@@ -124,14 +123,14 @@ func (app *application) usersPasswordPut(ctx context.Context, w http.ResponseWri
 	return app.writeJSON(w, http.StatusOK, msg, nil)
 }
 
-func (app *application) usersMeGet(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	user := app.contextGetUser(ctx)
+func (app *application) usersMeGet(w http.ResponseWriter, r *http.Request) error {
+	user := app.contextGetUser(r.Context())
 
 	return app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
 }
 
 // Every field is optional. Updating email requires a verificaiton token.
-func (app *application) usersMePut(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (app *application) usersMePut(w http.ResponseWriter, r *http.Request) error {
 	var input struct {
 		Email          *string `json:"email"`
 		Password       *string `json:"password"`
@@ -151,7 +150,7 @@ func (app *application) usersMePut(ctx context.Context, w http.ResponseWriter, r
 		return err
 	}
 
-	user := app.contextGetUser(ctx)
+	user := app.contextGetUser(r.Context())
 
 	// Update user email address
 	if input.Email != nil {
@@ -160,7 +159,7 @@ func (app *application) usersMePut(ctx context.Context, w http.ResponseWriter, r
 		}
 
 		tokenHash := crypto.TokenHash(*input.PlaintextToken)
-		err = app.db.VerificationTokens.Verify(ctx, tokenHash, data.ScopeEmailChange, *input.Email)
+		err = app.db.VerificationTokens.Verify(r.Context(), tokenHash, data.ScopeEmailChange, *input.Email)
 		if err != nil {
 			switch {
 			case errors.Is(err, data.ErrRecordNotFound):
@@ -172,7 +171,7 @@ func (app *application) usersMePut(ctx context.Context, w http.ResponseWriter, r
 			}
 		}
 
-		err = app.db.VerificationTokens.Purge(ctx, user.Email)
+		err = app.db.VerificationTokens.Purge(r.Context(), user.Email)
 		if err != nil {
 			return err
 		}
@@ -188,7 +187,7 @@ func (app *application) usersMePut(ctx context.Context, w http.ResponseWriter, r
 		}
 	}
 
-	err = app.db.Users.Update(ctx, user)
+	err = app.db.Users.Update(r.Context(), user)
 	if err != nil {
 		return err
 	}
