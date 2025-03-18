@@ -59,6 +59,7 @@ services:
       - ${TESTDB_PORT}:5432
     environment:
       - POSTGRES_PASSWORD=password
+    restart: unless-stopped
     volumes:
       - type: tmpfs
         target: /var/lib/postgresql/data/
@@ -67,7 +68,7 @@ services:
       - "-c"
       - "fsync=off"
       - "-c"
-      - "lib_buffers=1024MB"
+      - "shared_buffers=1024MB"
       - "-c"
       - "synchronous_commit=off"
       - "-c"

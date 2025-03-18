@@ -38,6 +38,7 @@
             golint
             gnumake
             goose
+            postgresql
           ];
         };
       });
