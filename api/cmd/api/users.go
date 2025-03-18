@@ -10,6 +10,8 @@ import (
 	"github.com/micahco/mono/lib/data"
 )
 
+const expiredTokenMessage = "expired token"
+
 // Create new user with email and password if provided token
 // matches verification.
 func (app *application) usersPost(w http.ResponseWriter, r *http.Request) error {
@@ -26,7 +28,6 @@ func (app *application) usersPost(w http.ResponseWriter, r *http.Request) error 
 
 	err = validation.ValidateStruct(&input,
 		validation.Field(&input.Email, validation.Required, is.Email),
-		// TODO: generalize password length values
 		validation.Field(&input.Password, validation.Required, passwordLength),
 		validation.Field(&input.PlaintextToken, validation.Required),
 	)
@@ -40,9 +41,9 @@ func (app *application) usersPost(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			return app.writeError(w, http.StatusUnauthorized, nil)
+			return app.writeJSONError(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		case errors.Is(err, data.ErrExpiredToken):
-			return app.writeError(w, http.StatusUnauthorized, "Expired token")
+			return app.writeJSONError(w, expiredTokenMessage, http.StatusUnauthorized)
 		default:
 			return err
 		}
@@ -63,7 +64,9 @@ func (app *application) usersPost(w http.ResponseWriter, r *http.Request) error 
 		return err
 	}
 
-	return app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
+	res := response{"user": user}
+
+	return app.writeJSON(w, res, http.StatusCreated)
 }
 
 // Password reset handler
@@ -92,9 +95,9 @@ func (app *application) usersPasswordPut(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
-			return app.writeError(w, http.StatusUnauthorized, nil)
+			return app.writeJSONError(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		case errors.Is(err, data.ErrExpiredToken):
-			return app.writeError(w, http.StatusUnauthorized, "Expired token")
+			return app.writeJSONError(w, expiredTokenMessage, http.StatusUnauthorized)
 		default:
 			return err
 		}
@@ -118,15 +121,16 @@ func (app *application) usersPasswordPut(w http.ResponseWriter, r *http.Request)
 		return err
 	}
 
-	msg := envelope{"message": "your password was successfully reset"}
+	res := response{"message": "your password was successfully reset"}
 
-	return app.writeJSON(w, http.StatusOK, msg, nil)
+	return app.writeJSON(w, res, http.StatusOK)
 }
 
 func (app *application) usersMeGet(w http.ResponseWriter, r *http.Request) error {
 	user := app.contextGetUser(r.Context())
+	res := response{"user": user}
 
-	return app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
+	return app.writeJSON(w, res, http.StatusOK)
 }
 
 // Every field is optional. Updating email requires a verificaiton token.
@@ -155,7 +159,7 @@ func (app *application) usersMePut(w http.ResponseWriter, r *http.Request) error
 	// Update user email address
 	if input.Email != nil {
 		if input.PlaintextToken == nil {
-			return app.writeError(w, http.StatusUnauthorized, "Missing token")
+			return app.writeJSONError(w, "missing token", http.StatusUnauthorized)
 		}
 
 		tokenHash := crypto.TokenHash(*input.PlaintextToken)
@@ -163,9 +167,9 @@ func (app *application) usersMePut(w http.ResponseWriter, r *http.Request) error
 		if err != nil {
 			switch {
 			case errors.Is(err, data.ErrRecordNotFound):
-				return app.writeError(w, http.StatusUnauthorized, nil)
+				return app.writeJSONError(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			case errors.Is(err, data.ErrExpiredToken):
-				return app.writeError(w, http.StatusUnauthorized, "Expired token")
+				return app.writeJSONError(w, expiredTokenMessage, http.StatusUnauthorized)
 			default:
 				return err
 			}
@@ -192,5 +196,7 @@ func (app *application) usersMePut(w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 
-	return app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
+	res := response{"user": user}
+
+	return app.writeJSON(w, res, http.StatusCreated)
 }

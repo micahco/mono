@@ -1,44 +1,17 @@
 package middleware
 
 import (
-	"errors"
 	"expvar"
-	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
-	validation "github.com/go-ozzo/ozzo-validation"
-	"github.com/tomasen/realip"
-	"golang.org/x/time/rate"
+	"github.com/go-chi/httprate"
+	"github.com/justinas/nosurf"
 )
 
-// Handles user facing messages
+// Handles user facing messages. Mimics http.Error()
 type ErrorResponseFunc func(w http.ResponseWriter, message string, statusCode int)
-
-// Handles internal server errors. Does NOT reveal errors to user.
-type ServerErrorFunc func(w http.ResponseWriter, logMsg string, err error)
-
-type HandlerFunc func(w http.ResponseWriter, r *http.Request) error
-
-func WithErrorHandling(
-	handler HandlerFunc,
-	errResponse ErrorResponseFunc,
-	serverErr ServerErrorFunc,
-) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := handler(w, r); err != nil {
-			var validationError validation.Errors
-			switch {
-			case errors.As(err, &validationError):
-				errResponse(w, validationError.Error(), http.StatusUnprocessableEntity)
-			default:
-				serverErr(w, "middlware: handled unexpected error", err)
-			}
-		}
-	}
-}
 
 func WithTimeout(timeout time.Duration) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -48,6 +21,10 @@ func WithTimeout(timeout time.Duration) func(next http.Handler) http.Handler {
 
 func StripSlashes(next http.Handler) http.Handler {
 	return middleware.StripSlashes(next)
+}
+
+func Profiler() http.Handler {
+	return middleware.Profiler()
 }
 
 func Metrics(next http.Handler) http.Handler {
@@ -65,22 +42,6 @@ func Metrics(next http.Handler) http.Handler {
 		duration := time.Since(start).Microseconds()
 		totalProcessingTimeMicroseconds.Add(duration)
 	})
-}
-
-func Recoverer(serverErr ServerErrorFunc) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			defer func() {
-				if err := recover(); err != nil {
-					w.Header().Set("Connection", "close")
-
-					serverErr(w, "middleware: recoverer", fmt.Errorf("%s", err))
-				}
-			}()
-
-			next.ServeHTTP(w, r)
-		})
-	}
 }
 
 func EnableCORS(trustedOrigins []string) func(next http.Handler) http.Handler {
@@ -113,61 +74,42 @@ func EnableCORS(trustedOrigins []string) func(next http.Handler) http.Handler {
 	}
 }
 
-func RateLimit(errResponse ErrorResponseFunc, rps, burst int) func(next http.Handler) http.Handler {
+func RateLimit(rps int, errResponse ErrorResponseFunc) func(next http.Handler) http.Handler {
+	return httprate.Limit(
+		rps,
+		time.Second,
+		httprate.WithKeyByRealIP(),
+		httprate.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, err error) {
+			errResponse(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+		}),
+	)
+}
+
+func SecureHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Security-Policy",
+			"default-src 'self'; frame-ancestors 'self'; form-action 'self';")
+		w.Header().Set("Referrer-Policy", "origin-when-cross-origin")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "deny")
+		w.Header().Set("X-XSS-Protection", "0")
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Calls failureHandler in case CSRF check fails
+func NoSurf(failureHandler http.Handler) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		type client struct {
-			limiter  *rate.Limiter
-			lastSeen time.Time
-		}
-
-		var (
-			mu      sync.Mutex
-			clients = make(map[string]*client)
-			maxAge  = 3 * time.Minute
-		)
-
-		go func() {
-			for {
-				time.Sleep(time.Minute)
-
-				// Lock the mutex to prevent any rate limiter checks from happening while
-				// the cleanup is taking place.
-				mu.Lock()
-
-				for ip, client := range clients {
-					if time.Since(client.lastSeen) > maxAge {
-						delete(clients, ip)
-					}
-				}
-
-				mu.Unlock()
-			}
-		}()
-
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip := realip.FromRequest(r)
-
-			// Lock the mutex to prevent this code from being executed concurrently.
-			mu.Lock()
-
-			// Check to see if the IP address already exists in the map. If it doesn't, then
-			// initialize a new rate limiter and add the IP address and limiter to the map.
-			if _, found := clients[ip]; !found {
-				clients[ip] = &client{
-					limiter: rate.NewLimiter(rate.Limit(rps), burst),
-				}
-			}
-
-			if !clients[ip].limiter.Allow() {
-				mu.Unlock()
-				errResponse(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
-
-				return
-			}
-
-			mu.Unlock()
-
-			next.ServeHTTP(w, r)
+		csrfHandler := nosurf.New(next)
+		csrfHandler.SetBaseCookie(http.Cookie{
+			HttpOnly: true,
+			Path:     "/",
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
 		})
+		csrfHandler.SetFailureHandler(failureHandler)
+
+		return csrfHandler
 	}
 }

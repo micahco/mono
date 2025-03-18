@@ -11,11 +11,6 @@ import (
 	"github.com/micahco/mono/lib/data"
 )
 
-const (
-	verificationMsg  = "A verification email has been sent. Please check your inbox."
-	passwordResetMsg = "If that email address is in our database, a token to reset your password will be sent to that address."
-)
-
 type Token struct {
 	Plaintext string
 	Hash      []byte
@@ -36,6 +31,11 @@ func newToken(ttl time.Duration) (Token, error) {
 
 	return token, nil
 }
+
+const (
+	emailVerificicationMessage = "A verification email has been sent. Please check your inbox."
+	invalidCredentialsMessage  = "invalid credentials"
+)
 
 // Create a verification token with registration scope and
 // mail it to the provided email address.
@@ -58,7 +58,7 @@ func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter
 
 	// This will be the consistent message. Even if a user
 	// already exists with this email, send this message.
-	msg := envelope{"message": verificationMsg}
+	res := response{"message": emailVerificicationMessage}
 
 	// Check if user with email already exists
 	exists, err := app.db.Users.ExistsWithEmail(r.Context(), input.Email)
@@ -68,7 +68,7 @@ func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter
 	if exists {
 		// User with email already exists. Send the
 		// consistent respone message.
-		return app.writeJSON(w, http.StatusOK, msg, nil)
+		return app.writeJSON(w, res, http.StatusOK)
 	}
 
 	// Check if a verification token has already been created recently
@@ -79,7 +79,7 @@ func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter
 	if exists {
 		// Recent verification sent, don't mail another.
 		// Send the same message.
-		return app.writeJSON(w, http.StatusOK, msg, nil)
+		return app.writeJSON(w, res, http.StatusOK)
 	}
 
 	// Create new token for user
@@ -102,7 +102,7 @@ func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter
 		return app.mailer.Send(input.Email, "registration.tmpl", data)
 	})
 
-	return app.writeJSON(w, http.StatusOK, msg, nil)
+	return app.writeJSON(w, res, http.StatusOK)
 }
 
 func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter, r *http.Request) error {
@@ -124,7 +124,7 @@ func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter,
 
 	// This will be the consistent message. Even if a user
 	// already exists with this email, send this message.
-	msg := envelope{"message": verificationMsg}
+	res := response{"message": emailVerificicationMessage}
 
 	// Check if user with email already exists
 	exists, err := app.db.Users.ExistsWithEmail(r.Context(), input.Email)
@@ -134,7 +134,7 @@ func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter,
 	if exists {
 		// User with email already exists. Send the
 		// consistent respone message.
-		return app.writeJSON(w, http.StatusOK, msg, nil)
+		return app.writeJSON(w, res, http.StatusOK)
 	}
 
 	// Check if a verification token has already been created recently
@@ -145,7 +145,7 @@ func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter,
 	if exists {
 		// Recent verification sent, don't mail another, just
 		// send the same message
-		return app.writeJSON(w, http.StatusOK, msg, nil)
+		return app.writeJSON(w, res, http.StatusOK)
 	}
 
 	// Create verification token for user with new email address
@@ -168,7 +168,7 @@ func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter,
 		return app.mailer.Send(input.Email, "email-change.tmpl", data)
 	})
 
-	return app.writeJSON(w, http.StatusOK, msg, nil)
+	return app.writeJSON(w, res, http.StatusOK)
 }
 
 func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWriter, r *http.Request) error {
@@ -190,7 +190,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWrite
 
 	// This will be the consistent message. Even if a user
 	// already exists with this email, send this message.
-	msg := envelope{"message": verificationMsg}
+	res := response{"message": emailVerificicationMessage}
 
 	// Check if user with email exists
 	exists, err := app.db.Users.ExistsWithEmail(r.Context(), input.Email)
@@ -200,7 +200,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWrite
 	if !exists {
 		// User with email does not exist. Still send the same
 		// message.
-		return app.writeJSON(w, http.StatusOK, msg, nil)
+		return app.writeJSON(w, res, http.StatusOK)
 	}
 
 	// Check if a verification token has already been created recently
@@ -210,7 +210,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWrite
 	}
 	if exists {
 		// Recent verification sent, don't mail another
-		return app.writeJSON(w, http.StatusOK, msg, nil)
+		return app.writeJSON(w, res, http.StatusOK)
 	}
 
 	token, err := newToken(data.VerificationTokenTTL)
@@ -233,7 +233,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWrite
 		return app.mailer.Send(input.Email, "password-reset.tmpl", data)
 	})
 
-	return app.writeJSON(w, http.StatusOK, msg, nil)
+	return app.writeJSON(w, res, http.StatusOK)
 }
 
 func (app *application) tokensAuthenticationPost(w http.ResponseWriter, r *http.Request) error {
@@ -260,7 +260,7 @@ func (app *application) tokensAuthenticationPost(w http.ResponseWriter, r *http.
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			// User with email does not exist
-			return app.writeError(w, http.StatusUnauthorized, InvalidCredentailsMessage)
+			return app.writeJSONError(w, invalidCredentialsMessage, http.StatusUnauthorized)
 		default:
 			return err
 		}
@@ -272,7 +272,7 @@ func (app *application) tokensAuthenticationPost(w http.ResponseWriter, r *http.
 	}
 	if !match {
 		// Incorrect password
-		return app.writeError(w, http.StatusUnauthorized, InvalidCredentailsMessage)
+		return app.writeJSONError(w, invalidCredentialsMessage, http.StatusUnauthorized)
 	}
 
 	// Create authentication token for user with new email address
@@ -286,5 +286,7 @@ func (app *application) tokensAuthenticationPost(w http.ResponseWriter, r *http.
 		return err
 	}
 
-	return app.writeJSON(w, http.StatusCreated, envelope{"authentication_token": token.Plaintext}, nil)
+	res := response{"authentication_token": token.Plaintext}
+
+	return app.writeJSON(w, res, http.StatusCreated)
 }

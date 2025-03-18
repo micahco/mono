@@ -1,7 +1,7 @@
 # Config for local development. This gets commited to 
 # version control, so don't put anything secret here.
 
-# pgtestdb
+# testdb
 export TESTDB_PORT=5678
 
 # postgres
@@ -20,8 +20,5 @@ export SMTP_WEB_PORT=5000
 # api
 export API_HOST="api.local"
 export API_PORT=4000
-export API_LIMITER_ENABLED=false
-export API_LIMITER_RPS=2
-export API_LIMITER_BURST=4
 export API_SMTP_SENDER="no-reply@cowell.dev"
 export API_CORS_TRUSTED_ORIGINS="http://localhost:9000 http://localhost:9001"

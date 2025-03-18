@@ -14,17 +14,15 @@ func (app *application) routes() http.Handler {
 	// Middleware
 	r.Use(middleware.StripSlashes)
 	r.Use(middleware.Metrics)
-	r.Use(middleware.Recoverer(app.serverErrorResponse))
+	r.Use(app.recovery)
 	r.Use(middleware.EnableCORS(app.config.cors.trustedOrigins))
-	if app.config.limiter.enabled {
-		r.Use(middleware.RateLimit(app.errorResponse, app.config.limiter.rps, app.config.limiter.burst))
-	}
+	r.Use(middleware.RateLimit(app.config.limiter.rps, app.errorResponse))
 	r.Use(app.authenticate)
 	r.NotFound(app.handle(app.notFound))
 	r.MethodNotAllowed(app.handle(app.methodNotAllowed))
 
 	// Metrics
-	//r.Mount("/debug", middleware.Profiler())
+	r.Mount("/debug", middleware.Profiler())
 
 	// API
 	r.Route("/v1", func(r chi.Router) {
@@ -61,20 +59,12 @@ func (app *application) routes() http.Handler {
 	return r
 }
 
-func (app *application) handle(h middleware.HandlerFunc) http.HandlerFunc {
-	return middleware.WithErrorHandling(
-		h,
-		app.errorResponse,
-		app.serverErrorResponse,
-	)
-}
-
 func (app *application) notFound(w http.ResponseWriter, r *http.Request) error {
-	return app.writeError(w, http.StatusNotFound, nil)
+	return app.writeJSONError(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 }
 
 func (app *application) methodNotAllowed(w http.ResponseWriter, r *http.Request) error {
-	return app.writeError(w, http.StatusMethodNotAllowed, nil)
+	return app.writeJSONError(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 }
 
 func (app *application) healthcheck(w http.ResponseWriter, r *http.Request) error {
@@ -83,7 +73,7 @@ func (app *application) healthcheck(w http.ResponseWriter, r *http.Request) erro
 		env = "development"
 	}
 
-	data := envelope{
+	res := response{
 		"status": "available",
 		"system_info": map[string]string{
 			"environment": env,
@@ -91,5 +81,5 @@ func (app *application) healthcheck(w http.ResponseWriter, r *http.Request) erro
 		},
 	}
 
-	return app.writeJSON(w, http.StatusOK, data, nil)
+	return app.writeJSON(w, res, http.StatusOK)
 }

@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmittmann/tint"
 	"github.com/micahco/mono/lib/data/postgres"
 	"github.com/micahco/mono/lib/mailer"
@@ -32,9 +31,8 @@ type config struct {
 		dsn string
 	}
 	limiter struct {
-		rps     int
-		burst   int
 		enabled bool
+		rps     int
 	}
 	smtp struct {
 		port     int
@@ -52,6 +50,7 @@ func main() {
 	var cfg config
 
 	flag.BoolVar(&cfg.dev, "dev", false, "Development mode")
+	flag.IntVar(&cfg.port, "port", getEnvInt("API_PORT"), "API server port")
 
 	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("DATABASE_URL"), "PostgreSQL DSN")
 
@@ -61,10 +60,8 @@ func main() {
 	flag.StringVar(&cfg.smtp.password, "smtp-password", os.Getenv("SMTP_PASSWORD"), "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", os.Getenv("API_SMTP_SENDER"), "SMTP sender")
 
-	flag.IntVar(&cfg.port, "port", getEnvInt("API_PORT"), "API server port")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", getEnvBool("API_LIMITER_ENABLED"), "Enable rate limiter")
 	flag.IntVar(&cfg.limiter.rps, "limiter-rps", getEnvInt("API_LIMITER_RPS"), "Rate limiter maximum requests per second")
-	flag.IntVar(&cfg.limiter.burst, "limiter-burst", getEnvInt("API_LIMITER_BURST"), "Rate limiter maximum burst")
 
 	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(val string) error {
 		if val == "" {
@@ -90,9 +87,6 @@ func main() {
 	logger = slog.New(h)
 	// Create error log for http.Server
 	errLog := slog.NewLogLogger(h, slog.LevelError)
-	if logger == nil {
-		log.Fatal("ded")
-	}
 
 	// DB
 	pg, err := postgres.NewPostgresDB(cfg.db.dsn)
@@ -151,38 +145,6 @@ func newSlogHandler(dev bool) slog.Handler {
 
 	// Production use JSON handler with default opts
 	return slog.NewJSONHandler(os.Stdout, nil)
-}
-
-type poolStats struct {
-	AcquireCount            int64
-	AcquireDuration         time.Duration
-	AcquiredConns           int32
-	CanceledAcquireCount    int64
-	ConstructingConns       int32
-	EmptyAcquireCount       int64
-	IdleConns               int32
-	MaxConns                int32
-	MaxIdleDestroyCount     int64
-	MaxLifetimeDestroyCount int64
-	NewConnsCount           int64
-	TotalConns              int32
-}
-
-func dbStats(st *pgxpool.Stat) poolStats {
-	return poolStats{
-		AcquireCount:            st.AcquireCount(),
-		AcquireDuration:         st.AcquireDuration(),
-		AcquiredConns:           st.AcquiredConns(),
-		CanceledAcquireCount:    st.CanceledAcquireCount(),
-		ConstructingConns:       st.ConstructingConns(),
-		EmptyAcquireCount:       st.EmptyAcquireCount(),
-		IdleConns:               st.IdleConns(),
-		MaxConns:                st.MaxConns(),
-		MaxIdleDestroyCount:     st.MaxIdleDestroyCount(),
-		MaxLifetimeDestroyCount: st.MaxLifetimeDestroyCount(),
-		NewConnsCount:           st.NewConnsCount(),
-		TotalConns:              st.TotalConns(),
-	}
 }
 
 func fatal(err error) {
