@@ -1,0 +1,100 @@
+package ui
+
+templ Login(csrfToken string, formErrors map[string]string) {
+    <main>
+        <h1>Welcome</h1>
+
+        <h2>Login</h2>
+        <form action="/auth/login" method="POST">
+            <input type="hidden" name="csrf_token" value={ csrfToken }>
+            <label for="email">Email</label>
+            <input type="email" name="email" autocomplete="username" required>
+            <label for="password">Password</label>
+            <input type="password" name="password" autocomplete="username" required>
+            <button>Login</button>
+            <a href="/auth/reset">Forgot password?</a>
+        </form>
+
+        <h2>Sign up</h2>
+        <form action="/auth/signup" method="POST">
+            <input type="hidden" name="csrf_token" value={ csrfToken }>
+            <label for="email">Email</label>
+            <input type="email" name="email" autocomplete="username" required>
+            if err, ok := formErrors["email"]; ok {
+                <span class="form-error">{ err }</span>
+            }
+            <button>Sign up</button>
+        </form>
+    </main>
+}
+
+templ Register(csrfToken string, formErrors map[string]string, email string) {
+    <main>
+        <h1>Register</h1>
+        <form action="/auth/register" method="POST">
+            <input type="hidden" name="csrf_token" value={ csrfToken }/>
+            <input type="hidden" name="email" value={ email }>
+            <div>
+                <label for="password">Password</label>
+                <input type="password" name="password" autocomplete="current-password" required/>
+                if err, ok := formErrors["password"]; ok {
+                    <span class="form-error">{ err }</span>
+                }
+            </div>
+            <button>Create Account</button>
+        </form>
+    </main>
+}
+
+templ ResetPassword(csrfToken string, formErrors map[string]string, email string) {
+    <main>
+        <h1>Reset Password</h1>
+
+        <p>
+            A link to reset your password will be sent your email.
+        </p>
+
+        <form action="/auth/reset" method="POST">
+            <input type="hidden" name="csrf_token" value={ csrfToken }>
+            if email == "" {
+                <label for="email">Email</label>
+                <input type="email" name="email" autocomplete="username" required>
+                if err, ok := formErrors["email"]; ok {
+                    <span class="form-error">{ err }</span>
+                }
+            } else {
+                <input type="hidden" name="email" value={ email }>
+            }
+            <button>Send verification</button>
+        </form>
+    </main>
+}
+
+templ UpdatePassword(csrfToken string, formErrors map[string]string, verificationToken, email string) {
+    <main>
+        <h1>Update Password</h1>
+        <form action="/auth/reset/update" method="POST">
+            <input type="hidden" name="csrf_token" value={ csrfToken }>
+            <input type="hidden" name="token" value={ verificationToken }>
+            <div>
+                if email == "" {
+                    <label for="email">Email</label>
+                    <input type="email" name="email" autocomplete="username" required>
+                    if err, ok := formErrors["email"]; ok {
+                        <span class="form-error">{ err }</span>
+                    }
+                } else {
+                    <input type="hidden" name="email" value={ email }>
+                }
+            </div>
+            <div>
+                <label for="password">Password</label>
+                <input type="password" name="password" autocomplete="new-password" required/>
+                if err, ok := formErrors["password"]; ok {
+                    <span class="form-error">{ err }</span>
+                }
+            </div>
+            <button>Update</button>
+        </form>
+    </main>
+}

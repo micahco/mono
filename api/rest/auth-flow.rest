@@ -15,7 +15,7 @@ content-type: application/json
 {
     "email": "test@example.com",
     "password": "super_secret_password",
-    "token": "D5XGYO2K736D3LCMIMCQMA4F2A"
+    "token": "UUIRLHPAJ67ZQSJRZYNXFQPXW4"
 }
 
 ### Request authentication token in exchange for credentials
@@ -29,11 +29,11 @@ content-type: application/json
 
 ### Use auth token to get user information
 GET http://localhost:4000/v1/users/me HTTP/1.1
-Authorization: Bearer I6ZQQICOZL424JLTR3GAY3JETA
+Authorization: Bearer TCRWPOEZKY5YC7XGMJVMNZLTYE
 
 ### Request a verification token to change email
 POST http://localhost:4000/v1/tokens/verification/email-change HTTP/1.1
-Authorization: Bearer I6ZQQICOZL424JLTR3GAY3JETA
+Authorization: Bearer TCRWPOEZKY5YC7XGMJVMNZLTYE
 content-type: application/json
 
 {
@@ -42,17 +42,17 @@ content-type: application/json
 
 ### Update user with new email address
 PUT http://localhost:4000/v1/users/me HTTP/1.1
-Authorization: Bearer I6ZQQICOZL424JLTR3GAY3JETA
+Authorization: Bearer TCRWPOEZKY5YC7XGMJVMNZLTYE
 content-type: application/json
 
 {
     "email": "updated@domain.org",
-    "token": "NI5OLMJNOTUQIIH662DCUITPTE"
+    "token": "IEJDVIX5LEZQW2TMX24737O6KY"
 }
 
 ### Check if email is updated
 GET http://localhost:4000/v1/users/me HTTP/1.1
-Authorization: Bearer I6ZQQICOZL424JLTR3GAY3JETA
+Authorization: Bearer TCRWPOEZKY5YC7XGMJVMNZLTYE
 
 ### Request a password reset
 POST http://localhost:4000/v1/tokens/verification/password-reset HTTP/1.1
@@ -68,7 +68,7 @@ content-type: application/json
 
 {
     "password": "new_secret_password",
-    "token": "667MYQ5GYDJQC5IGNUGQJISD2I"
+    "token": "MFELQNRXBDWCMXTYBEABLURIMU"
 }
 
 ### Request authentication token in exchange for new credentials
@@ -82,4 +82,4 @@ content-type: application/json
 
 ### Use new auth token to get user information
 GET http://localhost:4000/v1/users/me HTTP/1.1
-Authorization: Bearer NHPDEFFGUELQEERDB465IZH23A
+Authorization: Bearer IEWKOBF5INWGAFEEBXMHYHYPTM

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/micahco/mono/lib/data/internal/uuid"
+	"github.com/gofrs/uuid/v5"
 )
 
 // Default expiry duration

@@ -5,11 +5,11 @@ import (
 	"errors"
 	"time"
 
+	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/micahco/mono/lib/data"
-	"github.com/micahco/mono/lib/data/internal/uuid"
 )
 
 type UserRepository struct {
@@ -179,6 +179,31 @@ func (r *UserRepository) GetWithAuthenticationToken(ctx context.Context, tokenHa
 	}
 
 	return &u, nil
+}
+
+func (r *UserRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	var exists bool
+
+	sql := `
+		SELECT EXISTS (
+			SELECT 1
+			FROM user_
+			WHERE id_ = $1
+		);`
+	args := []any{
+		id,
+	}
+	err := r.Pool.QueryRow(ctx, sql, args...).Scan(&exists)
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return false, nil
+		default:
+			return exists, err
+		}
+	}
+
+	return exists, nil
 }
 
 func (r *UserRepository) ExistsWithEmail(ctx context.Context, email string) (bool, error) {

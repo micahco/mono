@@ -15,6 +15,21 @@ type Token struct {
 	Expiry    time.Time
 }
 
+func NewToken(ttl time.Duration) (Token, error) {
+	var token Token
+	var err error
+
+	token.Plaintext, err = GeneratePlaintextToken()
+	if err != nil {
+		return token, err
+	}
+
+	token.Hash = TokenHash(token.Plaintext)
+	token.Expiry = time.Now().Add(ttl)
+
+	return token, nil
+}
+
 // Generate a random plaintext token base-32 string
 func GeneratePlaintextToken() (string, error) {
 	// Initialize a zero-valued byte slice with a length of 16 bytes.

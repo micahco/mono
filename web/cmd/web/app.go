@@ -7,22 +7,30 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/alexedwards/scs/v2"
+	"github.com/go-playground/form/v4"
+	"github.com/go-playground/validator/v10"
 	"github.com/micahco/mono/lib/data"
 	"github.com/micahco/mono/lib/mailer"
 )
 
 type application struct {
-	wg     sync.WaitGroup
-	config config
-	db     data.DB
-	logger *slog.Logger
-	mailer *mailer.Mailer
+	wg             sync.WaitGroup
+	config         config
+	db             data.DB
+	logger         *slog.Logger
+	mailer         *mailer.Mailer
+	sessionManager *scs.SessionManager
+	formDecoder    *form.Decoder
+	validate       *validator.Validate
+	baseURL        *url.URL
 }
 
 func (app *application) serve(errLog *log.Logger) error {

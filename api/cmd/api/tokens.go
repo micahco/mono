@@ -3,34 +3,12 @@ package main
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/micahco/mono/lib/crypto"
 	"github.com/micahco/mono/lib/data"
 )
-
-type Token struct {
-	Plaintext string
-	Hash      []byte
-	Expiry    time.Time
-}
-
-func newToken(ttl time.Duration) (Token, error) {
-	var token Token
-	var err error
-
-	token.Plaintext, err = crypto.GeneratePlaintextToken()
-	if err != nil {
-		return token, err
-	}
-
-	token.Hash = crypto.TokenHash(token.Plaintext)
-	token.Expiry = time.Now().Add(ttl)
-
-	return token, nil
-}
 
 const (
 	emailVerificicationMessage = "A verification email has been sent. Please check your inbox."
@@ -77,13 +55,13 @@ func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter
 		return err
 	}
 	if exists {
-		// Recent verification sent, don't mail another.
+		// A verfication token has already been sent.
 		// Send the same message.
 		return app.writeJSON(w, res, http.StatusOK)
 	}
 
 	// Create new token for user
-	token, err := newToken(data.VerificationTokenTTL)
+	token, err := crypto.NewToken(data.VerificationTokenTTL)
 	if err != nil {
 		return err
 	}
@@ -149,7 +127,7 @@ func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter,
 	}
 
 	// Create verification token for user with new email address
-	token, err := newToken(data.VerificationTokenTTL)
+	token, err := crypto.NewToken(data.VerificationTokenTTL)
 	if err != nil {
 		return err
 	}
@@ -213,7 +191,7 @@ func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWrite
 		return app.writeJSON(w, res, http.StatusOK)
 	}
 
-	token, err := newToken(data.VerificationTokenTTL)
+	token, err := crypto.NewToken(data.VerificationTokenTTL)
 	if err != nil {
 		return err
 	}
@@ -276,7 +254,7 @@ func (app *application) tokensAuthenticationPost(w http.ResponseWriter, r *http.
 	}
 
 	// Create authentication token for user with new email address
-	token, err := newToken(data.AuthenticationTokenTTL)
+	token, err := crypto.NewToken(data.AuthenticationTokenTTL)
 	if err != nil {
 		return err
 	}

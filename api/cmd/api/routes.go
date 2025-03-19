@@ -16,7 +16,9 @@ func (app *application) routes() http.Handler {
 	r.Use(middleware.Metrics)
 	r.Use(app.recovery)
 	r.Use(middleware.EnableCORS(app.config.cors.trustedOrigins))
-	r.Use(middleware.RateLimit(app.config.limiter.rps, app.errorResponse))
+	if app.config.limiter.enabled {
+		r.Use(middleware.RateLimit(app.config.limiter.rps, app.errorResponse))
+	}
 	r.Use(app.authenticate)
 	r.NotFound(app.handle(app.notFound))
 	r.MethodNotAllowed(app.handle(app.methodNotAllowed))
@@ -77,7 +79,6 @@ func (app *application) healthcheck(w http.ResponseWriter, r *http.Request) erro
 		"status": "available",
 		"system_info": map[string]string{
 			"environment": env,
-			"version":     version,
 		},
 	}
 

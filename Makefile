@@ -34,4 +34,5 @@ migrations/reset: migrations/drop migrations/up
 ## test: run all tests
 .PHONY: test
 test:
+	docker compose up -d testdb --remove-orphans
 	find . -name "go.mod" -execdir go test ./... \;

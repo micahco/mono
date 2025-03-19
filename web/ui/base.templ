@@ -1,0 +1,27 @@
+package ui
+
+import "github.com/micahco/mono/web/internal/flash"
+
+templ Base(title string, fm *flash.Message) {
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <link rel="stylesheet" href="/static/main.css">
+        <title>{ title }</title>
+    </head>
+    <body>
+        <header>
+            <em>mono-web</em>
+        </header>
+        if fm != nil {
+            <div role="status" class={"flex flash-" + fm.Type}>
+                { fm.Content }
+            </div>
+        }
+        { children... }
+    </body>
+    </html>
+}

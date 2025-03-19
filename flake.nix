@@ -39,6 +39,7 @@
             gnumake
             goose
             postgresql
+            templ
           ];
         };
       });

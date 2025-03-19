@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gofrs/uuid/v5"
 	"github.com/micahco/mono/lib/data"
-	"github.com/micahco/mono/lib/data/internal/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -81,6 +81,16 @@ func runUserRepositoryTests(t *testing.T, db *data.DB) {
 		readUser, err := db.Users.GetWithAuthenticationToken(ctx, tokenHash)
 		assert.NoError(t, err)
 		assert.Equal(t, testUser, readUser)
+	})
+
+	t.Run("TestExists", func(t *testing.T) {
+		exists, err := db.Users.Exists(ctx, testUser.ID)
+		assert.NoError(t, err)
+		assert.True(t, exists)
+
+		exists, err = db.Users.Exists(ctx, nonExistantID)
+		assert.NoError(t, err)
+		assert.False(t, exists)
 	})
 
 	t.Run("TestExistsWithEmail", func(t *testing.T) {

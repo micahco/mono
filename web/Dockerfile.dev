@@ -1,0 +1,12 @@
+FROM golang:1.24.1-alpine
+
+RUN go install github.com/air-verse/air@latest
+RUN go install github.com/a-h/templ/cmd/templ@latest
+
+WORKDIR /app
+
+COPY . ./
+
+WORKDIR /app/web
+
+CMD ["air", "-c", "air.toml"]

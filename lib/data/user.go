@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/micahco/mono/lib/data/internal/uuid"
+	"github.com/gofrs/uuid/v5"
 )
 
 type ComparePasswordAndHash func(plaintextPassword string, passwordHash []byte) (bool, error)
@@ -15,6 +15,7 @@ type UserRepository interface {
 	GetWithEmail(ctx context.Context, email string) (*User, error)
 	GetWithVerificationToken(ctx context.Context, scope string, tokenHash []byte) (*User, error)
 	GetWithAuthenticationToken(ctx context.Context, tokenHash []byte) (*User, error)
+	Exists(ctx context.Context, id uuid.UUID) (bool, error)
 	ExistsWithEmail(ctx context.Context, email string) (bool, error)
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id uuid.UUID) error

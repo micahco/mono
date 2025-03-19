@@ -1,13 +1,11 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/micahco/mono/lib/crypto"
@@ -89,10 +87,7 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		plaintextToken := headerParts[1]
 		tokenHash := crypto.TokenHash(plaintextToken)
 
-		dbCtx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-		defer cancel()
-
-		user, err := app.db.Users.GetWithAuthenticationToken(dbCtx, tokenHash)
+		user, err := app.db.Users.GetWithAuthenticationToken(r.Context(), tokenHash)
 		if err != nil {
 			switch {
 			case errors.Is(err, data.ErrRecordNotFound),

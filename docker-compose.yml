@@ -18,9 +18,34 @@ services:
       - API_LIMITER_BURST
       - API_CORS_TRUSTED_ORIGINS
     volumes:
-      - ./api:/app/api
+      - ./:/app
     depends_on:
       db:
+        condition: service_healthy
+      smtp:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile.dev
+    ports:
+      - ${WEB_PORT}:${WEB_PORT}
+    environment:
+      - DATABASE_URL
+      - SMTP_PORT
+      - SMTP_HOST
+      - SMTP_USERNAME
+      - SMTP_PASSWORD
+      - WEB_PORT
+      - WEB_URL
+      - WEB_SMTP_SENDER
+    volumes:
+      - ./:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      smtp:
         condition: service_healthy
 
   migrate:

@@ -1,18 +1,25 @@
 package main
 
 import (
+	"encoding/gob"
 	"flag"
 	"log"
 	"log/slog"
 	"net/mail"
+	"net/url"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
+	"github.com/alexedwards/scs/pgxstore"
+	"github.com/alexedwards/scs/v2"
+	"github.com/go-playground/form/v4"
+	"github.com/go-playground/validator/v10"
+	"github.com/gofrs/uuid/v5"
 	"github.com/lmittmann/tint"
 	"github.com/micahco/mono/lib/data/postgres"
 	"github.com/micahco/mono/lib/mailer"
+	"github.com/micahco/mono/web/internal/flash"
 )
 
 var logger *slog.Logger
@@ -20,12 +27,9 @@ var logger *slog.Logger
 type config struct {
 	dev  bool
 	port int
+	url  string
 	db   struct {
 		dsn string
-	}
-	limiter struct {
-		enabled bool
-		rps     int
 	}
 	smtp struct {
 		port     int
@@ -34,16 +38,14 @@ type config struct {
 		password string
 		sender   string
 	}
-	cors struct {
-		trustedOrigins []string
-	}
 }
 
 func main() {
 	var cfg config
 
 	flag.BoolVar(&cfg.dev, "dev", false, "Development mode")
-	flag.IntVar(&cfg.port, "port", getEnvInt("API_PORT"), "API server port")
+	flag.IntVar(&cfg.port, "port", getEnvInt("WEB_PORT"), "web server port")
+	flag.StringVar(&cfg.url, "url", os.Getenv("WEB_URL"), "base url for building links")
 
 	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("DATABASE_URL"), "PostgreSQL DSN")
 
@@ -51,19 +53,7 @@ func main() {
 	flag.StringVar(&cfg.smtp.host, "smtp-host", os.Getenv("SMTP_HOST"), "SMTP host")
 	flag.StringVar(&cfg.smtp.username, "smtp-username", os.Getenv("SMTP_USERNAME"), "SMTP username")
 	flag.StringVar(&cfg.smtp.password, "smtp-password", os.Getenv("SMTP_PASSWORD"), "SMTP password")
-	flag.StringVar(&cfg.smtp.sender, "smtp-sender", os.Getenv("API_SMTP_SENDER"), "SMTP sender")
-
-	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", getEnvBool("API_LIMITER_ENABLED"), "Enable rate limiter")
-	flag.IntVar(&cfg.limiter.rps, "limiter-rps", getEnvInt("API_LIMITER_RPS"), "Rate limiter maximum requests per second")
-
-	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(val string) error {
-		if val == "" {
-			val = os.Getenv("API_CORS_TRUSTED_ORIGINS")
-		}
-
-		cfg.cors.trustedOrigins = strings.Fields(val)
-		return nil
-	})
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", os.Getenv("WEB_SMTP_SENDER"), "SMTP sender")
 
 	flag.Parse()
 
@@ -97,11 +87,29 @@ func main() {
 		fatal(err)
 	}
 
+	// Session manager
+	sm := scs.New()
+	sm.Store = pgxstore.New(pg.Pool)
+	sm.Lifetime = 12 * time.Hour
+	gob.Register(uuid.UUID{})
+	gob.Register(flash.Message{})
+	gob.Register(FormErrors{})
+
+	// Base URL
+	baseURL, err := url.Parse(cfg.url)
+	if err != nil {
+		fatal(err)
+	}
+
 	app := &application{
-		config: cfg,
-		db:     *pg.DB,
-		logger: logger,
-		mailer: m,
+		config:         cfg,
+		db:             *pg.DB,
+		logger:         logger,
+		mailer:         m,
+		sessionManager: sm,
+		formDecoder:    form.NewDecoder(),
+		validate:       validator.New(),
+		baseURL:        baseURL,
 	}
 
 	err = app.serve(errLog)
@@ -141,13 +149,4 @@ func getEnvInt(key string) int {
 	}
 
 	return v
-}
-
-func getEnvBool(key string) bool {
-	val, ok := os.LookupEnv(key)
-	if !ok {
-		return false
-	}
-
-	return strings.ToLower(val) == "true"
 }
