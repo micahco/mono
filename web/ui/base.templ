@@ -1,8 +1,6 @@
 package ui
 
-import "github.com/micahco/mono/web/internal/flash"
-
-templ Base(title string, fm *flash.Message) {
+templ Base(title string) {
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -16,11 +14,6 @@ templ Base(title string, fm *flash.Message) {
         <header>
             <em>mono-web</em>
         </header>
-        if fm != nil {
-            <div role="status" class={"flex flash-" + fm.Type}>
-                { fm.Content }
-            </div>
-        }
         { children... }
     </body>
     </html>

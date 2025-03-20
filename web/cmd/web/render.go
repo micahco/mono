@@ -12,7 +12,7 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, statusCod
 
 	ctx := templ.WithChildren(r.Context(), children)
 
-	return ui.Base(title, app.popFlash(r)).Render(ctx, w)
+	return ui.Base(title).Render(ctx, w)
 }
 
 func (app *application) renderError(w http.ResponseWriter, errorMessage string, statusCode int) error {

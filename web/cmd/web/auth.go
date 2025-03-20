@@ -10,7 +10,6 @@ import (
 	"github.com/justinas/nosurf"
 	"github.com/micahco/mono/lib/crypto"
 	"github.com/micahco/mono/lib/data"
-	"github.com/micahco/mono/web/internal/flash"
 	"github.com/micahco/mono/web/ui"
 )
 
@@ -136,21 +135,14 @@ func (app *application) handleAuthSignupPost(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 
-	// Consistent flash message
-	fm := flash.Message{
-		Type:    flash.Info,
-		Content: "A link to activate your account has been sent to the email address provided. Please check your junk folder.",
-	}
-
 	// Check if user with email already exists
 	exists, err := app.db.Users.ExistsWithEmail(r.Context(), form.Email)
 	if err != nil {
 		return err
 	}
 	if exists {
-		// User with email already exists. Send the
-		// consistent flash message.
-		app.putFlash(r, fm)
+		// User with email already exists.
+		// TODO: respond with message
 		app.refresh(w, r)
 		return nil
 	}
@@ -162,8 +154,7 @@ func (app *application) handleAuthSignupPost(w http.ResponseWriter, r *http.Requ
 	}
 	if exists {
 		// A verfication token has already been sent.
-		// Send the same message.
-		app.putFlash(r, fm)
+		// TODO: respond with message
 		app.refresh(w, r)
 		return nil
 	}
@@ -185,22 +176,21 @@ func (app *application) handleAuthSignupPost(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 	q := ref.Query()
+	q.Set("email", form.Email)
 	q.Set("token", token.Plaintext)
 	ref.RawQuery = q.Encode()
 	link := app.baseURL.ResolveReference(ref)
 
 	// Send mail in background routine
-	if !app.config.dev {
-		app.background(func() error {
-			data := map[string]any{
-				"token": link,
-			}
+	app.background(func() error {
+		data := map[string]any{
+			"token": link,
+		}
 
-			return app.mailer.Send(form.Email, "registration.tmpl", data)
-		})
-	}
+		return app.mailer.Send(form.Email, "registration.tmpl", data)
+	})
 
-	app.putFlash(r, fm)
+	// TODO: respond with message
 	app.refresh(w, r)
 
 	return nil
@@ -226,11 +216,6 @@ func (app *application) handleAuthRegisterGet(w http.ResponseWriter, r *http.Req
 	component := ui.Register(nosurf.Token(r), app.popFormErrors(r), email)
 
 	return app.render(w, r, http.StatusOK, "Register", component)
-}
-
-var ExpiredTokenFlash = flash.Message{
-	Type:    flash.Error,
-	Content: "Expired verification token.",
 }
 
 func (app *application) handleAuthRegisterPost(w http.ResponseWriter, r *http.Request) error {
@@ -262,7 +247,7 @@ func (app *application) handleAuthRegisterPost(w http.ResponseWriter, r *http.Re
 			return app.renderError(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		}
 		if errors.Is(err, data.ErrExpiredToken) {
-			app.putFlash(r, ExpiredTokenFlash)
+			// TODO: flash message
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 
 			return nil
@@ -298,11 +283,7 @@ func (app *application) handleAuthRegisterPost(w http.ResponseWriter, r *http.Re
 		return err
 	}
 
-	fm := flash.Message{
-		Type:    flash.Success,
-		Content: "Successfully created account. Welcome!",
-	}
-	app.putFlash(r, fm)
+	// TODO: respond with success message created account
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 
 	return nil
@@ -341,18 +322,12 @@ func (app *application) handleAuthResetPost(w http.ResponseWriter, r *http.Reque
 		return err
 	}
 
-	fm := flash.Message{
-		Type:    flash.Info,
-		Content: "A link to reset your password has been sent to the email address provided. Please check your junk folder.",
-	}
-
 	exists, err := app.db.Users.ExistsWithEmail(r.Context(), form.Email)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		// If user does not exist, respond with consistent flash message
-		app.putFlash(r, fm)
+		// respond with consistent message email sent
 		app.refresh(w, r)
 
 		return nil
@@ -363,7 +338,7 @@ func (app *application) handleAuthResetPost(w http.ResponseWriter, r *http.Reque
 		return err
 	}
 	if exists {
-		app.putFlash(r, fm)
+		// respond with consistent message email sent
 		app.refresh(w, r)
 
 		return nil
@@ -386,25 +361,21 @@ func (app *application) handleAuthResetPost(w http.ResponseWriter, r *http.Reque
 		return err
 	}
 	q := ref.Query()
-	q.Set("token", token.Plaintext)
 	q.Set("email", form.Email)
+	q.Set("token", token.Plaintext)
 	ref.RawQuery = q.Encode()
 	link := app.baseURL.ResolveReference(ref)
 
 	// Send mail in background routine
-	if !app.config.dev {
-		app.background(func() error {
-			data := map[string]any{
-				"token": link,
-			}
+	app.background(func() error {
+		data := map[string]any{
+			"token": link,
+		}
 
-			return app.mailer.Send(form.Email, "email-verification.tmpl", data)
-		})
-	}
+		return app.mailer.Send(form.Email, "password-reset.tmpl", data)
+	})
 
-	app.sessionManager.RenewToken(r.Context())
-
-	app.putFlash(r, fm)
+	// respond with consistent message email sent
 	app.refresh(w, r)
 
 	return nil
@@ -420,11 +391,6 @@ func (app *application) handleAuthResetUpdateGet(w http.ResponseWriter, r *http.
 	if email == "" {
 		return app.renderError(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
-
-	var data struct {
-		HasSessionEmail bool
-	}
-	data.HasSessionEmail = app.sessionManager.Exists(r.Context(), resetEmailSessionKey)
 
 	component := ui.UpdatePassword(nosurf.Token(r), app.popFormErrors(r), plaintextToken, email)
 
@@ -452,8 +418,8 @@ func (app *application) handleAuthResetUpdatePost(w http.ResponseWriter, r *http
 			return app.renderError(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		}
 		if errors.Is(err, data.ErrExpiredToken) {
-			app.putFlash(r, ExpiredTokenFlash)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			// TODO: flash expired token. please try again
+			http.Redirect(w, r, "/auth/reset", http.StatusSeeOther)
 
 			return nil
 		}
@@ -483,11 +449,7 @@ func (app *application) handleAuthResetUpdatePost(w http.ResponseWriter, r *http
 
 	app.sessionManager.Clear(r.Context())
 
-	fm := flash.Message{
-		Type:    flash.Success,
-		Content: "Successfully updated password. Please login.",
-	}
-	app.putFlash(r, fm)
+	// TODO: flash password updated success please login
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 

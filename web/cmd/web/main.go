@@ -19,7 +19,6 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/micahco/mono/lib/data/postgres"
 	"github.com/micahco/mono/lib/mailer"
-	"github.com/micahco/mono/web/internal/flash"
 )
 
 var logger *slog.Logger
@@ -92,7 +91,6 @@ func main() {
 	sm.Store = pgxstore.New(pg.Pool)
 	sm.Lifetime = 12 * time.Hour
 	gob.Register(uuid.UUID{})
-	gob.Register(flash.Message{})
 	gob.Register(FormErrors{})
 
 	// Base URL

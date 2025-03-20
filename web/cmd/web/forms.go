@@ -83,7 +83,7 @@ func (app *application) parseForm(r *http.Request, dst any) error {
 					}
 				}
 
-				name := fieldErr.StructField()
+				name := strings.ToLower(fieldErr.StructField())
 				formErrors[name] = msg
 			}
 			return formErrors

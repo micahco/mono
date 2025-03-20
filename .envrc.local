@@ -24,5 +24,5 @@ export API_CORS_TRUSTED_ORIGINS="http://localhost:9000 http://localhost:9001"
 
 # web 
 export WEB_PORT=5000
-export WEB_URL="https://localhost:${WEB_PORT}"
+export WEB_URL="http://localhost:${WEB_PORT}"
 export WEB_SMTP_SENDER="no-reply@cowell.dev"
