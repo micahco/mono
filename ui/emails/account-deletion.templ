@@ -1,0 +1,6 @@
+package emails
+
+templ AccountDeletion(href string) {
+    <h1>Account Deletion</h1>
+    <a href={ templ.URL(href) }>{ href }</a>
+}

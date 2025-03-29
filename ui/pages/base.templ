@@ -1,0 +1,30 @@
+package pages
+
+templ Base(title string, csrfToken string, isAuthenticated bool) {
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <link rel="stylesheet" href="/static/main.css">
+        <title>{ title }</title>
+    </head>
+    <body>
+        <header>
+            <em>mono-web</em>
+        </header>
+        <nav>
+            if isAuthenticated {
+                <form action="/auth/logout" method="POST">
+                    <input type="hidden" name="csrf_token" value={ csrfToken }>
+                    <button>
+                        Logout
+                    </button>
+                </form>
+            }
+        </nav>
+        { children... }
+    </body>
+    </html>
+}

@@ -35,4 +35,9 @@ migrations/reset: migrations/drop migrations/up
 .PHONY: test
 test:
 	docker compose up -d testdb --remove-orphans
-	find . -name "go.mod" -execdir go test ./... \;
+	go test -v  ./...
+
+## run/web: run web server
+.PHONY: run/web
+run/web:
+	go run ./cmd/web -port=${WEB_PORT} -dev

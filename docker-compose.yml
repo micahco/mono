@@ -1,52 +1,35 @@
 services:
-  api:
-    build:
-      context: .
-      dockerfile: api/Dockerfile.dev
+  smtp:
+    image: maildev/maildev:latest
+    hostname: ${SMTP_HOST}
     ports:
-      - ${API_PORT}:${API_PORT}
-    environment:
-      - DATABASE_URL
-      - SMTP_PORT
-      - SMTP_HOST
-      - SMTP_USERNAME
-      - SMTP_PASSWORD
-      - API_PORT
-      - API_SMTP_SENDER
-      - API_LIMITER_ENABLED
-      - API_LIMITER_RPS
-      - API_LIMITER_BURST
-      - API_CORS_TRUSTED_ORIGINS
-    volumes:
-      - ./:/app
-    depends_on:
-      db:
-        condition: service_healthy
-      smtp:
-        condition: service_healthy
+      - ${SMTP_PORT}:${SMTP_PORT}
+      - ${SMTP_WEB_PORT}:1080
+    command:
+      - "-s"
+      - ${SMTP_PORT}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -O - http://localhost:1080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  web:
-    build:
-      context: .
-      dockerfile: web/Dockerfile.dev
+  db:
+    image: postgres:15
+    hostname: ${POSTGRES_HOST}
     ports:
-      - ${WEB_PORT}:${WEB_PORT}
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
     environment:
-      - DATABASE_URL
-      - SMTP_PORT
-      - SMTP_HOST
-      - SMTP_USERNAME
-      - SMTP_PASSWORD
-      - WEB_PORT
-      - WEB_URL
-      - WEB_SMTP_SENDER
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
     volumes:
-      - ./:/app
-    depends_on:
-      db:
-        condition: service_healthy
-      smtp:
-        condition: service_healthy
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   migrate:
     build:
@@ -62,21 +45,7 @@ services:
     command:
       - "-drop"
       - "-up"
-
-  db:
-    image: postgres:15
-    hostname: ${POSTGRES_HOST}
-    environment:
-      - POSTGRES_DB
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    network_mode: host
 
   testdb:
     image: postgres:15
@@ -102,20 +71,6 @@ services:
       - "log_statement=all"
       - "-c"
       - "max_connections=1000"
-
-  smtp:
-    image: maildev/maildev:latest
-    hostname: ${SMTP_HOST}
-    ports:
-      - ${SMTP_WEB_PORT}:1080
-    command:
-      - "-s"
-      - ${SMTP_PORT}
-    healthcheck:
-      test: ["CMD-SHELL", "wget -O - http://localhost:1080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 volumes:
   postgres-data:
