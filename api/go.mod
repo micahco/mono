@@ -21,6 +21,7 @@ replace github.com/micahco/mono/lib/mailer v0.0.0 => ../lib/mailer
 replace github.com/micahco/mono/lib/middleware v0.0.0 => ../lib/middleware
 
 require (
+	github.com/a-h/templ v0.3.833 // indirect
 	github.com/alexedwards/argon2id v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

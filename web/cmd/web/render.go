@@ -4,15 +4,15 @@ import (
 	"net/http"
 
 	"github.com/a-h/templ"
-	"github.com/micahco/mono/web/ui"
+	"github.com/micahco/mono/web/pages"
 )
 
-func (app *application) render(w http.ResponseWriter, r *http.Request, statusCode int, title string, children templ.Component) error {
+func (app *application) render(w http.ResponseWriter, r *http.Request, statusCode int, title string, component templ.Component) error {
 	w.WriteHeader(statusCode)
 
-	ctx := templ.WithChildren(r.Context(), children)
+	ctx := templ.WithChildren(r.Context(), component)
 
-	return ui.Base(title).Render(ctx, w)
+	return pages.Base(title).Render(ctx, w)
 }
 
 func (app *application) renderError(w http.ResponseWriter, errorMessage string, statusCode int) error {

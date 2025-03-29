@@ -10,7 +10,8 @@ import (
 	"github.com/justinas/nosurf"
 	"github.com/micahco/mono/lib/crypto"
 	"github.com/micahco/mono/lib/data"
-	"github.com/micahco/mono/web/ui"
+	"github.com/micahco/mono/lib/mailer/emails"
+	"github.com/micahco/mono/web/pages"
 )
 
 type contextKey string
@@ -183,11 +184,8 @@ func (app *application) handleAuthSignupPost(w http.ResponseWriter, r *http.Requ
 
 	// Send mail in background routine
 	app.background(func() error {
-		data := map[string]any{
-			"token": link,
-		}
-
-		return app.mailer.Send(form.Email, "registration.tmpl", data)
+		component := emails.Registration(link.String())
+		return app.mailer.Send(form.Email, "Registration", component)
 	})
 
 	// TODO: respond with message
@@ -213,7 +211,7 @@ func (app *application) handleAuthRegisterGet(w http.ResponseWriter, r *http.Req
 
 	app.sessionManager.Put(r.Context(), verificationTokenSessionKey, plaintextToken)
 
-	component := ui.Register(nosurf.Token(r), app.popFormErrors(r), email)
+	component := pages.Register(nosurf.Token(r), app.popFormErrors(r), email)
 
 	return app.render(w, r, http.StatusOK, "Register", component)
 }
@@ -307,7 +305,7 @@ func (app *application) handleAuthResetGet(w http.ResponseWriter, r *http.Reques
 		email = user.Email
 	}
 
-	component := ui.ResetPassword(nosurf.Token(r), app.popFormErrors(r), email)
+	component := pages.ResetPassword(nosurf.Token(r), app.popFormErrors(r), email)
 
 	return app.render(w, r, http.StatusOK, "Reset Password", component)
 }
@@ -368,11 +366,8 @@ func (app *application) handleAuthResetPost(w http.ResponseWriter, r *http.Reque
 
 	// Send mail in background routine
 	app.background(func() error {
-		data := map[string]any{
-			"token": link,
-		}
-
-		return app.mailer.Send(form.Email, "password-reset.tmpl", data)
+		component := emails.PasswordReset(link.String())
+		return app.mailer.Send(form.Email, "Password Reset", component)
 	})
 
 	// respond with consistent message email sent
@@ -392,7 +387,7 @@ func (app *application) handleAuthResetUpdateGet(w http.ResponseWriter, r *http.
 		return app.renderError(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
 
-	component := ui.UpdatePassword(nosurf.Token(r), app.popFormErrors(r), plaintextToken, email)
+	component := pages.UpdatePassword(nosurf.Token(r), app.popFormErrors(r), plaintextToken, email)
 
 	return app.render(w, r, http.StatusOK, "Update Password", component)
 }

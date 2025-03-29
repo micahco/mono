@@ -2,51 +2,23 @@ package mailer
 
 import (
 	"bytes"
-	"embed"
-	"fmt"
-	"io/fs"
+	"context"
 	"net/mail"
-	"path/filepath"
-	"text/template"
 
+	"github.com/a-h/templ"
 	"gopkg.in/gomail.v2"
 )
 
-//go:embed "templates/*.tmpl"
-var efs embed.FS
-
 type Mailer struct {
-	dialer        *gomail.Dialer
-	sender        *mail.Address
-	templateCache map[string]*template.Template
+	dialer *gomail.Dialer
+	sender *mail.Address
 }
 
-// Create new mailer with SMTP credentials and embedded fs using glob pattern
+// Create new mailer with SMTP credentials
 func New(host string, port int, username string, password string, sender *mail.Address) (*Mailer, error) {
-	cache := map[string]*template.Template{}
-
-	// Get list of filenames in embed using pattern
-	filenames, err := fs.Glob(efs, "templates/*.tmpl")
-	if err != nil {
-		return nil, err
-	}
-
-	// Create template for each file and add to cache
-	for _, fname := range filenames {
-		name := filepath.Base(fname)
-
-		t, err := template.New(name).ParseFS(efs, fname)
-		if err != nil {
-			return nil, err
-		}
-
-		cache[name] = t
-	}
-
 	m := &Mailer{
-		dialer:        gomail.NewDialer(host, port, username, password),
-		sender:        sender,
-		templateCache: cache,
+		dialer: gomail.NewDialer(host, port, username, password),
+		sender: sender,
 	}
 
 	// Ping the SMTP server to verify authentication
@@ -59,20 +31,12 @@ func New(host string, port int, username string, password string, sender *mail.A
 	return m, nil
 }
 
-func (m *Mailer) Send(recepient, tmpl string, data map[string]any) error {
-	t, ok := m.templateCache[tmpl]
-	if !ok {
-		return fmt.Errorf("template %s does not exist", tmpl)
-	}
+func (m *Mailer) Send(recepient, subject string, component templ.Component) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	subject := new(bytes.Buffer)
-	err := t.ExecuteTemplate(subject, "subject", data)
-	if err != nil {
-		return err
-	}
-
-	body := new(bytes.Buffer)
-	err = t.ExecuteTemplate(body, "body", data)
+	var buf bytes.Buffer
+	err := component.Render(ctx, &buf)
 	if err != nil {
 		return err
 	}
@@ -80,8 +44,8 @@ func (m *Mailer) Send(recepient, tmpl string, data map[string]any) error {
 	msg := gomail.NewMessage()
 	msg.SetHeader("To", recepient)
 	msg.SetHeader("From", m.sender.String())
-	msg.SetHeader("Subject", subject.String())
-	msg.SetBody("text/plain", body.String())
+	msg.SetHeader("Subject", subject)
+	msg.SetBody("text/plain", buf.String())
 
 	return m.dialer.DialAndSend(msg)
 }

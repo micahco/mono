@@ -8,6 +8,7 @@ import (
 	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/micahco/mono/lib/crypto"
 	"github.com/micahco/mono/lib/data"
+	"github.com/micahco/mono/lib/mailer/emails"
 )
 
 const (
@@ -73,11 +74,8 @@ func (app *application) tokensVerificaitonRegistrationPost(w http.ResponseWriter
 
 	// Mail the plaintext token to the user's email address.
 	app.background(func() error {
-		data := map[string]any{
-			"token": token.Plaintext,
-		}
-
-		return app.mailer.Send(input.Email, "registration.tmpl", data)
+		component := emails.Registration(token.Plaintext)
+		return app.mailer.Send(input.Email, "Registration", component)
 	})
 
 	return app.writeJSON(w, res, http.StatusOK)
@@ -139,11 +137,8 @@ func (app *application) tokensVerificaitonEmailChangePost(w http.ResponseWriter,
 
 	// Mail the plaintext token to the new email address
 	app.background(func() error {
-		data := map[string]any{
-			"token": token.Plaintext,
-		}
-
-		return app.mailer.Send(input.Email, "email-change.tmpl", data)
+		component := emails.EmailChange(token.Plaintext)
+		return app.mailer.Send(input.Email, "Email Verification", component)
 	})
 
 	return app.writeJSON(w, res, http.StatusOK)
@@ -204,11 +199,8 @@ func (app *application) tokensVerificaitonPasswordResetPost(w http.ResponseWrite
 
 	// Mail the plaintext token to the provided email address
 	app.background(func() error {
-		data := map[string]any{
-			"token": token.Plaintext,
-		}
-
-		return app.mailer.Send(input.Email, "password-reset.tmpl", data)
+		component := emails.PasswordReset(token.Plaintext)
+		return app.mailer.Send(input.Email, "password-reset.tmpl", component)
 	})
 
 	return app.writeJSON(w, res, http.StatusOK)

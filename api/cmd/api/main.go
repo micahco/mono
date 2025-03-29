@@ -85,7 +85,6 @@ func main() {
 		Name:    "Do Not Reply",
 		Address: cfg.smtp.sender,
 	}
-	logger.Info("dialing SMTP server...", slog.String("host", cfg.smtp.host))
 	m, err := mailer.New(
 		cfg.smtp.host,
 		cfg.smtp.port,

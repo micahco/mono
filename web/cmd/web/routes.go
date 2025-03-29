@@ -6,7 +6,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/justinas/nosurf"
 	"github.com/micahco/mono/lib/middleware"
-	"github.com/micahco/mono/web/ui"
+	"github.com/micahco/mono/web/assets"
+	"github.com/micahco/mono/web/pages"
 )
 
 // App router
@@ -47,15 +48,11 @@ func (app *application) refresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) handleStatic() http.Handler {
-	return http.FileServer(http.FS(ui.StaticFiles))
+	return http.FileServer(http.FS(assets.StaticFiles))
 }
 
 func (app *application) handleFavicon(w http.ResponseWriter, r *http.Request) {
-	http.ServeFileFS(w, r, ui.StaticFiles, "static/favicon.ico")
-}
-
-type userData struct {
-	Email string
+	http.ServeFileFS(w, r, assets.StaticFiles, "static/favicon.ico")
 }
 
 func (app *application) getIndex(w http.ResponseWriter, r *http.Request) error {
@@ -70,10 +67,10 @@ func (app *application) getIndex(w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 
-		component := ui.Dashboard(user)
+		component := pages.Dashboard(user)
 		return app.render(w, r, http.StatusOK, "Dashboard", component)
 	}
 
-	component := ui.Login(nosurf.Token(r), app.popFormErrors(r))
+	component := pages.Login(nosurf.Token(r), app.popFormErrors(r))
 	return app.render(w, r, http.StatusOK, "Welcome", component)
 }
